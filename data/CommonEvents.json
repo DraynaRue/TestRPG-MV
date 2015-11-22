@@ -1,0 +1,7 @@
+[
+null,
+{"id":1,"list":[{"code":356,"indent":0,"parameters":["EnemyBook open"]},{"code":0,"indent":0,"parameters":[]}],"name":"OpenEnemyBook","switchId":1,"trigger":0},
+{"id":2,"list":[{"code":111,"indent":0,"parameters":[0,10,1]},{"code":127,"indent":1,"parameters":[8,0,0,1,false]},{"code":319,"indent":1,"parameters":[4,1,8]},{"code":127,"indent":1,"parameters":[7,1,0,1,false]},{"code":121,"indent":1,"parameters":[10,10,0]},{"code":0,"indent":1,"parameters":[]},{"code":411,"indent":0,"parameters":[]},{"code":127,"indent":1,"parameters":[7,0,0,1,false]},{"code":319,"indent":1,"parameters":[4,1,7]},{"code":127,"indent":1,"parameters":[8,1,0,1,false]},{"code":121,"indent":1,"parameters":[10,10,1]},{"code":0,"indent":1,"parameters":[]},{"code":412,"indent":0,"parameters":[]},{"code":0,"indent":0,"parameters":[]}],"name":"Randy Mode Switch","switchId":1,"trigger":0},
+{"id":3,"list":[{"code":0,"indent":0,"parameters":[]}],"name":"","switchId":1,"trigger":0},
+{"id":4,"list":[{"code":0,"indent":0,"parameters":[]}],"name":"","switchId":1,"trigger":0}
+]

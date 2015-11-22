@@ -1,0 +1,11 @@
+[
+null,
+{"id":1,"animationId":6,"description":"","etypeId":1,"traits":[{"code":31,"dataId":1,"value":0},{"code":22,"dataId":0,"value":0}],"iconIndex":97,"name":"Sword","note":"","params":[0,0,10,0,0,0,0,0],"price":500,"wtypeId":2},
+{"id":2,"animationId":6,"description":"","etypeId":1,"traits":[{"code":31,"dataId":1,"value":0},{"code":22,"dataId":0,"value":0}],"iconIndex":99,"name":"Axe","note":"","params":[0,0,10,0,0,0,0,0],"price":500,"wtypeId":4},
+{"id":3,"animationId":1,"description":"","etypeId":1,"traits":[{"code":31,"dataId":1,"value":0},{"code":22,"dataId":0,"value":0}],"iconIndex":101,"name":"Cane","note":"","params":[0,0,10,0,0,0,0,0],"price":500,"wtypeId":6},
+{"id":4,"animationId":11,"description":"","etypeId":1,"traits":[{"code":31,"dataId":1,"value":0},{"code":22,"dataId":0,"value":0}],"iconIndex":102,"name":"Bow","note":"","params":[0,0,10,0,0,0,0,0],"price":500,"wtypeId":7},
+{"id":5,"animationId":11,"description":"A very light sword designed for piercing the enemy. Your normal attack hits twice.","etypeId":1,"traits":[{"code":31,"dataId":1,"value":0},{"code":22,"dataId":0,"value":0.1},{"code":34,"dataId":0,"value":1}],"iconIndex":97,"name":"Rapier","note":"","params":[0,0,5,0,0,0,5,0],"price":500,"wtypeId":13},
+{"id":6,"animationId":11,"description":"A version of the Rapier crafting in Alfheim, its parameters grow with its wielder. Your normal attack hits twice.","etypeId":1,"traits":[{"code":31,"dataId":1,"value":0},{"code":22,"dataId":0,"value":0.1},{"code":34,"dataId":0,"value":1}],"iconIndex":97,"name":"Cait Sith Rapier","note":"<Custom Parameters>\natk = user.paramBase(2) * 0.10 + user.level;\nagi = user.paramBase(6) * 0.05 + user.level;\n</Custom Parameters>","params":[0,0,0,0,0,0,0,0],"price":0,"wtypeId":13},
+{"id":7,"animationId":6,"description":"A mechanical sword that can morph into a gun with the flick of a wrist.","etypeId":1,"traits":[{"code":31,"dataId":1,"value":0},{"code":22,"dataId":0,"value":0}],"iconIndex":97,"name":"Gunblade","note":"","params":[0,0,10,0,0,0,0,0],"price":500,"wtypeId":2},
+{"id":8,"animationId":111,"description":"A mechanical sword that can morph into a gun with the flick of a wrist.","etypeId":1,"traits":[{"code":31,"dataId":1,"value":0},{"code":22,"dataId":0,"value":0}],"iconIndex":115,"name":"Gunblade","note":"","params":[0,0,10,0,0,0,5,0],"price":500,"wtypeId":9}
+]
