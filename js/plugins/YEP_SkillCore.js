@@ -11,7 +11,7 @@ Yanfly.Skill = Yanfly.Skill || {};
 
 //=============================================================================
 /*:
- * @plugindesc v1.05 Skills are now given more functions and the ability to
+ * @plugindesc v1.06 Skills are now given more functions and the ability to
  * require different types of costs.
  * @author Yanfly Engine Plugins
  *
@@ -146,6 +146,12 @@ Yanfly.Skill = Yanfly.Skill || {};
  *   Changes the skill to cost a percentage of the character's MaxTP value.
  *   Although the default MaxTP is 100, this tag will be useful for any
  *   plugins that will alter a character's MaxTP values.
+ *
+ *   <Hide in Battle>
+ *   This will hide and disable the skill during battle.
+ *
+ *   <Hide in Field>
+ *   This will hide and disable the skill outside of battle.
  *
  *   <Hide if Learned Skill: x>
  *   <Hide if Learned Skill: x, x, x>
@@ -316,6 +322,9 @@ Yanfly.Skill = Yanfly.Skill || {};
  * Changelog
  * ============================================================================
  *
+ * Version 1.06:
+ * - Added <Hide in Battle> and <Hide in Field> notetags.
+ *
  * Version 1.05:
  * - Added <Hide if Learned Skill: x> notetags.
  * - Added <Custom Show Eval> Lunatic Mode notetag.
@@ -372,19 +381,19 @@ Yanfly.Icon.Hp = Number(Yanfly.Parameters['HP Icon']);
 Yanfly.Skill.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
     if (!Yanfly.Skill.DataManager_isDatabaseLoaded.call(this)) return false;
-		this.processSkillNotetags($dataSkills);
+    this.processSkillNotetags($dataSkills);
     this.processObjectNotetags($dataSkills);
     this.processObjectNotetags($dataItems);
     this.processGSCNotetags1($dataClasses);
-	  this.processGSCNotetags1($dataEnemies);
+    this.processGSCNotetags1($dataEnemies);
     this.processGSCNotetags2($dataWeapons);
     this.processGSCNotetags2($dataArmors);
     this.processGSCNotetags2($dataStates);
-		return true;
+    return true;
 };
 
 DataManager.processSkillNotetags = function(group) {
-	var note1 = /<(?:MP COST):[ ](\d+)>/i;
+  var note1 = /<(?:MP COST):[ ](\d+)>/i;
   var note2 = /<(?:MP COST):[ ](\d+)([%％])>/i;
   var note3 = /<(?:TP COST):[ ](\d+)>/i;
   var note4 = /<(?:TP COST):[ ](\d+)([%％])>/i;
@@ -392,6 +401,8 @@ DataManager.processSkillNotetags = function(group) {
   var note6 = /<(?:HP COST):[ ](\d+)([%％])>/i;
   var note7a = /<(?:HIDE IF LEARNED SKILL):[ ]*(\d+(?:\s*,\s*\d+)*)>/i;
   var note7b = /<(?:HIDE IF LEARNED SKILL):[ ](\d+)[ ](?:THROUGH|to)[ ](\d+)>/i;
+  var note8a = /<(?:HIDE IN BATTLE|hide during battle)>/i;
+  var note8b = /<(?:HIDE IN FIELD|hide during field)>/i;
   var noteMpEval1 = /<(?:MP COST EVAL|custom mp cost)>/i;
   var noteMpEval2 = /<\/(?:MP COST EVAL|custom mp cost)>/i;
   var noteTpEval1 = /<(?:TP COST EVAL|custom tp cost)>/i;
@@ -409,13 +420,15 @@ DataManager.processSkillNotetags = function(group) {
   var noteShowEval1 = /<(?:CUSTOM SHOW EVAL)>/i;
   var noteShowEval2 = /<\/(?:CUSTOM SHOW EVAL)>/i;
   for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
-		var notedata = obj.note.split(/[\r\n]+/);
+    var obj = group[n];
+    var notedata = obj.note.split(/[\r\n]+/);
 
     obj.hpCost = 0;
-		obj.hpCostPer = 0.0;
-		obj.mpCostPer = 0.0;
-		obj.tpCostPer = 0.0;
+    obj.hpCostPer = 0.0;
+    obj.mpCostPer = 0.0;
+    obj.tpCostPer = 0.0;
+    obj.hideInBattle = false;
+    obj.hideInField = false;
     obj.hideIfLearnedSkill = [];
     var evalMode = 'none';
     obj.hpCostEval = '';
@@ -427,21 +440,21 @@ DataManager.processSkillNotetags = function(group) {
     obj.costShowEval = '';
     obj.customCostText = '';
 
-		for (var i = 0; i < notedata.length; i++) {
-			var line = notedata[i];
-			if (line.match(note1)) {
-				obj.mpCost = parseInt(RegExp.$1);
-			} else if (line.match(note2)) {
-				obj.mpCostPer = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(note3)) {
-				obj.tpCost = parseInt(RegExp.$1);
-			} else if (line.match(note4)) {
-				obj.tpCostPer = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(note5)) {
-				obj.hpCost = parseInt(RegExp.$1);
-			} else if (line.match(note6)) {
-				obj.hpCostPer = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(note7a)) {
+    for (var i = 0; i < notedata.length; i++) {
+      var line = notedata[i];
+      if (line.match(note1)) {
+        obj.mpCost = parseInt(RegExp.$1);
+      } else if (line.match(note2)) {
+        obj.mpCostPer = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(note3)) {
+        obj.tpCost = parseInt(RegExp.$1);
+      } else if (line.match(note4)) {
+        obj.tpCostPer = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(note5)) {
+        obj.hpCost = parseInt(RegExp.$1);
+      } else if (line.match(note6)) {
+        obj.hpCostPer = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(note7a)) {
         var array = JSON.parse('[' + RegExp.$1.match(/\d+/g) + ']');
         obj.hideIfLearnedSkill = obj.hideIfLearnedSkill.concat(array);
       } else if (line.match(note7b)) {
@@ -449,6 +462,10 @@ DataManager.processSkillNotetags = function(group) {
         var range = Yanfly.Util.getRange(parseInt(RegExp.$1),
           parseInt(RegExp.$2));
         obj.hideIfLearnedSkill = obj.hideIfLearnedSkill.concat(range);
+      } else if (line.match(note8a)) {
+        obj.hideInBattle = true;
+      } else if (line.match(note8b)) {
+        obj.hideInField = true;
       } else if (line.match(noteMpEval1)) {
         evalMode = 'mp';
       } else if (line.match(noteMpEval2)) {
@@ -498,8 +515,8 @@ DataManager.processSkillNotetags = function(group) {
       } else if (evalMode === 'custom show eval') {
         obj.costShowEval = obj.costShowEval + line + '\n';
       }
-		}
-	}
+    }
+  }
 };
 
 DataManager.processObjectNotetags = function(group) {
@@ -512,8 +529,8 @@ DataManager.processObjectNotetags = function(group) {
   var note7 = /<(?:AFTER EVAL)>/i;
   var note8 = /<\/(?:AFTER EVAL)>/i;
   for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
-		var notedata = obj.note.split(/[\r\n]+/);
+    var obj = group[n];
+    var notedata = obj.note.split(/[\r\n]+/);
 
     var customMode = 'none';
     obj.customBeforeEval = '';
@@ -521,23 +538,23 @@ DataManager.processObjectNotetags = function(group) {
     obj.customPostDamageEval = '';
     obj.customAfterEval = '';
 
-		for (var i = 0; i < notedata.length; i++) {
-			var line = notedata[i];
-			if (line.match(note1)) {
+    for (var i = 0; i < notedata.length; i++) {
+      var line = notedata[i];
+      if (line.match(note1)) {
         customMode = 'before';
-			} else if (line.match(note2)) {
+      } else if (line.match(note2)) {
         customMode = 'none';
       } else if (line.match(note3)) {
         customMode = 'pre-damage';
-			} else if (line.match(note4)) {
+      } else if (line.match(note4)) {
         customMode = 'none';
       } else if (line.match(note5)) {
         customMode = 'post-damage';
-			} else if (line.match(note6)) {
+      } else if (line.match(note6)) {
         customMode = 'none';
       } else if (line.match(note7)) {
         customMode = 'after';
-			} else if (line.match(note8)) {
+      } else if (line.match(note8)) {
         customMode = 'none';
       } else if (customMode === 'before') {
         obj.customBeforeEval = obj.customBeforeEval + line + '\n';
@@ -548,26 +565,26 @@ DataManager.processObjectNotetags = function(group) {
       } else if (customMode === 'after') {
         obj.customAfterEval = obj.customAfterEval + line + '\n';
       }
-		}
-	}
+    }
+  }
 };
 
 DataManager.processGSCNotetags1 = function(group) {
-	for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
-		var notedata = obj.note.split(/[\r\n]+/);
+  for (var n = 1; n < group.length; n++) {
+    var obj = group[n];
+    var notedata = obj.note.split(/[\r\n]+/);
 
     obj.gauge1 = 'HP';
     obj.gauge2 = 'MP';
     obj.gauge3 = 'TP';
 
-		obj.gaugeIcon1 = 0;
-		obj.gaugeIcon2 = 0;
-		obj.gaugeIcon3 = 0;
+    obj.gaugeIcon1 = 0;
+    obj.gaugeIcon2 = 0;
+    obj.gaugeIcon3 = 0;
 
-		for (var i = 0; i < notedata.length; i++) {
-			var line = notedata[i];
-			if (line.match(/<(?:SWAP GAUGE|gauge)[ ](\d+):[ ](.*)>/i)) {
+    for (var i = 0; i < notedata.length; i++) {
+      var line = notedata[i];
+      if (line.match(/<(?:SWAP GAUGE|gauge)[ ](\d+):[ ](.*)>/i)) {
         var gauge = parseInt(RegExp.$1);
         var text = String(RegExp.$2).toUpperCase();
         if (['HP', 'MP', 'TP', 'NOTHING', 'NULL'].contains(text)) {
@@ -576,26 +593,26 @@ DataManager.processGSCNotetags1 = function(group) {
           if (gauge === 3) obj.gauge3 = text;
         }
       }
-		}
-	}
+    }
+  }
 };
 
 DataManager.processGSCNotetags2 = function(group) {
-	for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
-		var notedata = obj.note.split(/[\r\n]+/);
+  for (var n = 1; n < group.length; n++) {
+    var obj = group[n];
+    var notedata = obj.note.split(/[\r\n]+/);
 
     obj.gauge1 = 'UNDEFINED';
     obj.gauge2 = 'UNDEFINED';
     obj.gauge3 = 'UNDEFINED';
 
-		obj.gaugeIcon1 = 'UNDEFINED';
-		obj.gaugeIcon2 = 'UNDEFINED';
-		obj.gaugeIcon3 = 'UNDEFINED';
+    obj.gaugeIcon1 = 'UNDEFINED';
+    obj.gaugeIcon2 = 'UNDEFINED';
+    obj.gaugeIcon3 = 'UNDEFINED';
 
-		for (var i = 0; i < notedata.length; i++) {
-			var line = notedata[i];
-			if (line.match(/<(?:SWAP GAUGE|gauge)[ ](\d+):[ ](.*)>/i)) {
+    for (var i = 0; i < notedata.length; i++) {
+      var line = notedata[i];
+      if (line.match(/<(?:SWAP GAUGE|gauge)[ ](\d+):[ ](.*)>/i)) {
         var gauge = parseInt(RegExp.$1);
         var text = String(RegExp.$2).toUpperCase();
         if (['HP', 'MP', 'TP', 'NOTHING', 'NULL'].contains(text)) {
@@ -604,8 +621,8 @@ DataManager.processGSCNotetags2 = function(group) {
           if (gauge === 3) obj.gauge3 = text;
         }
       }
-		}
-	}
+    }
+  }
 };
 
 //=============================================================================
@@ -626,6 +643,8 @@ Game_BattlerBase.prototype.noHiddenSkillConditionsMet = function(skill) {
       var skillId = skill.hideIfLearnedSkill[i];
       if (this.isLearnedSkill(skillId)) return false;
     }
+    if (skill.hideInBattle && $gameParty.inBattle()) return false;
+    if (skill.hideInField && !$gameParty.inBattle()) return false;
     if (!this.meetsCustomShowEval(skill)) return false;
     return true;
 };
@@ -657,69 +676,69 @@ Game_BattlerBase.prototype.meetsSkillConditionsEval = function(skill) {
 };
 
 Game_BattlerBase.prototype.skillHpCost = function(skill) {
-	var cost = skill.hpCost;
+  var cost = skill.hpCost;
   var item = skill;
   var a = this;
   var user = this;
   var subject = this;
   var s = $gameSwitches._data;
   var v = $gameVariables._data;
-	cost += this.mhp * skill.hpCostPer;
+  cost += this.mhp * skill.hpCostPer;
   eval(skill.hpCostEval);
-	return Math.max(0, Math.floor(cost));
+  return Math.max(0, Math.floor(cost));
 };
 
 Game_BattlerBase.prototype.skillMpCost = function(skill) {
-	var cost = skill.mpCost;
+  var cost = skill.mpCost;
   var item = skill;
   var a = this;
   var user = this;
   var subject = this;
   var s = $gameSwitches._data;
   var v = $gameVariables._data;
-	cost += this.mmp * skill.mpCostPer;
+  cost += this.mmp * skill.mpCostPer;
   eval(skill.mpCostEval);
-	return Math.max(0, Math.floor(cost * this.mcr));
+  return Math.max(0, Math.floor(cost * this.mcr));
 };
 
 Game_BattlerBase.prototype.skillTpCost = function(skill) {
-	var cost = skill.tpCost;
+  var cost = skill.tpCost;
   var item = skill;
   var a = this;
   var user = this;
   var subject = this;
   var s = $gameSwitches._data;
   var v = $gameVariables._data;
-	cost += this.maxTp() * skill.tpCostPer;
+  cost += this.maxTp() * skill.tpCostPer;
   eval(skill.tpCostEval);
   return Math.max(0, Math.floor(cost));
 };
 
 Yanfly.Skill.Game_BattlerBase_canPaySkillCost =
-		Game_BattlerBase.prototype.canPaySkillCost;
+    Game_BattlerBase.prototype.canPaySkillCost;
 Game_BattlerBase.prototype.canPaySkillCost = function(skill) {
-		if (!this.canPaySkillHpCost(skill)) return false;
+    if (!this.canPaySkillHpCost(skill)) return false;
     return Yanfly.Skill.Game_BattlerBase_canPaySkillCost.call(this, skill);
 };
 
 Game_BattlerBase.prototype.canPaySkillHpCost = function(skill) {
-		return this._hp > this.skillHpCost(skill);
+    return this._hp > this.skillHpCost(skill);
 };
 
 Yanfly.Skill.Game_BattlerBase_paySkillCost =
-		Game_BattlerBase.prototype.paySkillCost
+    Game_BattlerBase.prototype.paySkillCost
 Game_BattlerBase.prototype.paySkillCost = function(skill) {
     Yanfly.Skill.Game_BattlerBase_paySkillCost.call(this, skill);
-		this.paySkillHpCost(skill);
+    this.paySkillHpCost(skill);
     this.paySkillEvalCost(skill);
 };
 
 Game_BattlerBase.prototype.paySkillHpCost = function(skill) {
-		this._hp -= this.skillHpCost(skill);
+    this._hp -= this.skillHpCost(skill);
 };
 
 Game_BattlerBase.prototype.paySkillEvalCost = function(skill) {
-		if (skill.executeEval === '') return;
+    if (skill.executeEval === '') return;
     var item = skill;
     var a = this;
     var user = this;
@@ -1059,66 +1078,66 @@ Window_SkillList.prototype.includes = function(item) {
 
 Window_SkillList.prototype.drawSkillCost = function(skill, wx, wy, width) {
     var dw = width;
-		dw = this.drawTpCost(skill, wx, wy, dw);
-		dw = this.drawMpCost(skill, wx, wy, dw);
-		dw = this.drawHpCost(skill, wx, wy, dw);
+    dw = this.drawTpCost(skill, wx, wy, dw);
+    dw = this.drawMpCost(skill, wx, wy, dw);
+    dw = this.drawHpCost(skill, wx, wy, dw);
     dw = this.drawCustomDisplayCost(skill, wx, wy, dw);
-		dw = this.drawOtherCost(skill, wx, wy, dw);
+    dw = this.drawOtherCost(skill, wx, wy, dw);
     return dw;
 };
 
 Window_SkillList.prototype.drawTpCost = function(skill, wx, wy, dw) {
-		if (this._actor.skillTpCost(skill) <= 0) return dw;
-		if (Yanfly.Icon.Tp > 0) {
-			var iw = wx + dw - Window_Base._iconWidth;
-			this.drawIcon(Yanfly.Icon.Tp, iw, wy + 2);
-			dw -= Window_Base._iconWidth + 2;
-		}
-		this.changeTextColor(this.textColor(Yanfly.Param.SCCTpTextColor));
-		var fmt = Yanfly.Param.SCCTpFormat;
-		var text = fmt.format(Yanfly.Util.toGroup(this._actor.skillTpCost(skill)),
-			TextManager.tpA);
-		this.contents.fontSize = Yanfly.Param.SCCTpFontSize;
-		this.drawText(text, wx, wy, dw, 'right');
+    if (this._actor.skillTpCost(skill) <= 0) return dw;
+    if (Yanfly.Icon.Tp > 0) {
+      var iw = wx + dw - Window_Base._iconWidth;
+      this.drawIcon(Yanfly.Icon.Tp, iw, wy + 2);
+      dw -= Window_Base._iconWidth + 2;
+    }
+    this.changeTextColor(this.textColor(Yanfly.Param.SCCTpTextColor));
+    var fmt = Yanfly.Param.SCCTpFormat;
+    var text = fmt.format(Yanfly.Util.toGroup(this._actor.skillTpCost(skill)),
+      TextManager.tpA);
+    this.contents.fontSize = Yanfly.Param.SCCTpFontSize;
+    this.drawText(text, wx, wy, dw, 'right');
     var returnWidth = dw - this.textWidth(text) - Yanfly.Param.SCCCostPadding;
-		this.resetFontSettings();
-		return returnWidth;
+    this.resetFontSettings();
+    return returnWidth;
 };
 
 Window_SkillList.prototype.drawMpCost = function(skill, wx, wy, dw) {
-		if (this._actor.skillMpCost(skill) <= 0) return dw;
-		if (Yanfly.Icon.Mp > 0) {
-			var iw = wx + dw - Window_Base._iconWidth;
-			this.drawIcon(Yanfly.Icon.Mp, iw, wy + 2);
-			dw -= Window_Base._iconWidth + 2;
-		}
-		this.changeTextColor(this.textColor(Yanfly.Param.SCCMpTextColor));
-		var fmt = Yanfly.Param.SCCMpFormat;
-		var text = fmt.format(Yanfly.Util.toGroup(this._actor.skillMpCost(skill)),
-			TextManager.mpA);
-		this.contents.fontSize = Yanfly.Param.SCCMpFontSize;
+    if (this._actor.skillMpCost(skill) <= 0) return dw;
+    if (Yanfly.Icon.Mp > 0) {
+      var iw = wx + dw - Window_Base._iconWidth;
+      this.drawIcon(Yanfly.Icon.Mp, iw, wy + 2);
+      dw -= Window_Base._iconWidth + 2;
+    }
+    this.changeTextColor(this.textColor(Yanfly.Param.SCCMpTextColor));
+    var fmt = Yanfly.Param.SCCMpFormat;
+    var text = fmt.format(Yanfly.Util.toGroup(this._actor.skillMpCost(skill)),
+      TextManager.mpA);
+    this.contents.fontSize = Yanfly.Param.SCCMpFontSize;
     this.drawText(text, wx, wy, dw, 'right');
     var returnWidth = dw - this.textWidth(text) - Yanfly.Param.SCCCostPadding;
-		this.resetFontSettings();
-		return returnWidth;
+    this.resetFontSettings();
+    return returnWidth;
 };
 
 Window_SkillList.prototype.drawHpCost = function(skill, wx, wy, dw) {
-		if (this._actor.skillHpCost(skill) <= 0) return dw;
-		if (Yanfly.Icon.Hp > 0) {
-			var iw = wx + dw - Window_Base._iconWidth;
-			this.drawIcon(Yanfly.Icon.Hp, iw, wy + 2);
-			dw -= Window_Base._iconWidth + 2;
-		}
-		this.changeTextColor(this.textColor(Yanfly.Param.SCCHpTextColor));
-		var fmt = Yanfly.Param.SCCHpFormat;
-		var text = fmt.format(Yanfly.Util.toGroup(this._actor.skillHpCost(skill)),
-			TextManager.hpA);
-		this.contents.fontSize = Yanfly.Param.SCCHpFontSize;
+    if (this._actor.skillHpCost(skill) <= 0) return dw;
+    if (Yanfly.Icon.Hp > 0) {
+      var iw = wx + dw - Window_Base._iconWidth;
+      this.drawIcon(Yanfly.Icon.Hp, iw, wy + 2);
+      dw -= Window_Base._iconWidth + 2;
+    }
+    this.changeTextColor(this.textColor(Yanfly.Param.SCCHpTextColor));
+    var fmt = Yanfly.Param.SCCHpFormat;
+    var text = fmt.format(Yanfly.Util.toGroup(this._actor.skillHpCost(skill)),
+      TextManager.hpA);
+    this.contents.fontSize = Yanfly.Param.SCCHpFontSize;
     this.drawText(text, wx, wy, dw, 'right');
     var returnWidth = dw - this.textWidth(text) - Yanfly.Param.SCCCostPadding;
-		this.resetFontSettings();
-		return returnWidth;
+    this.resetFontSettings();
+    return returnWidth;
 };
 
 Window_SkillList.prototype.textWidthEx = function(text) {
@@ -1131,8 +1150,8 @@ Window_SkillList.prototype.drawCustomDisplayCost = function(skill, wx, wy, dw) {
     var width = this.textWidthEx(skill.customCostText);
     this.drawTextEx(skill.customCostText, wx - width + dw, wy);
     var returnWidth = dw - width - Yanfly.Param.SCCCostPadding;
-		this.resetFontSettings();
-		return returnWidth;
+    this.resetFontSettings();
+    return returnWidth;
 };
 
 Window_SkillList.prototype.runDisplayEvalCost = function(skill) {
@@ -1147,7 +1166,7 @@ Window_SkillList.prototype.runDisplayEvalCost = function(skill) {
 };
 
 Window_SkillList.prototype.drawOtherCost = function(skill, wx, wy, dw) {
-		return dw;
+    return dw;
 };
 
 //=============================================================================
@@ -1157,9 +1176,9 @@ Window_SkillList.prototype.drawOtherCost = function(skill, wx, wy, dw) {
 Yanfly.Util = Yanfly.Util || {};
 
 if (!Yanfly.Util.toGroup) {
-		Yanfly.Util.toGroup = function(inVal) {
-				return inVal;
-		}
+    Yanfly.Util.toGroup = function(inVal) {
+        return inVal;
+    }
 };
 
 //=============================================================================

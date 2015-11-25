@@ -11,7 +11,7 @@ Yanfly.Core = Yanfly.Core || {};
 
 //=============================================================================
 /*:
- * @plugindesc v1.06 Needed for the majority of Yanfly Engine Scripts. Also
+ * @plugindesc v1.07 Needed for the majority of Yanfly Engine Scripts. Also
  * contains bug fixes found inherently in RPG Maker.
  * @author Yanfly Engine Plugins
  *
@@ -444,6 +444,10 @@ Yanfly.Core = Yanfly.Core || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.07:
+ * - Fixed an issue with the gauges drawing outlines thicker than normal at odd
+ * intervals when windows are scaled irregularly.
  *
  * Version 1.06:
  * - Removed event frequency bug fix since it's now included in the source.
@@ -1213,7 +1217,9 @@ Window_Base.prototype.drawGauge = function(dx, dy, dw, rate, color1, color2) {
 	var gaugeY = dy + this.lineHeight() - gaugeH - 2;
 	if (eval(Yanfly.Param.GaugeOutline)) {
 		color3.paintOpacity = this.translucentOpacity();
-		this.contents.fillRect(dx, gaugeY-1, dw+2, gaugeH+2, color3);
+		this.contents.fillRect(dx, gaugeY - 1, dw, gaugeH, color3);
+    fillW = Math.max(fillW - 2, 0);
+    gaugeH -= 2;
 		dx += 1;
 	} else {
 		var fillW = Math.floor(dw * rate);

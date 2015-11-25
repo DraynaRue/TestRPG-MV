@@ -11,7 +11,7 @@ Yanfly.Crit = Yanfly.Crit || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.01 (Requires YEP_DamageCore.js) Control over critical
+ * @plugindesc v1.01a (Requires YEP_DamageCore.js) Control over critical
  * hits have been added.
  * @author Yanfly Engine Plugins
  *
@@ -195,8 +195,9 @@ Yanfly.Crit = Yanfly.Crit || {};
  * Changelog
  * ============================================================================
  *
- * Version 1.01:
+ * Version 1.01a:
  * - Fixed a bug regarding Lunatic Critical Hit Rates.
+ * - Fixed a default formula that caused critical hits to heal unexpectedly.
  *
  * Version 1.00:
  * - Finished Plugin!

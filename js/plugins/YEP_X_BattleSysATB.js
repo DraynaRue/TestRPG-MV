@@ -11,7 +11,7 @@ Yanfly.ATB = Yanfly.ATB || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.09 (Requires YEP_BattleEngineCore.js) Add ATB (Active
+ * @plugindesc v1.10 (Requires YEP_BattleEngineCore.js) Add ATB (Active
  * Turn Battle) into your game using this plugin!
  * @author Yanfly Engine Plugins
  *
@@ -438,6 +438,10 @@ Yanfly.ATB = Yanfly.ATB || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.10:
+ * - Fixed a bug that would cause AutoBattlers to stall if they got added into
+ * the party mid-battle.
  *
  * Version 1.09:
  * - Mechanic change for states that update on Action End to end at the end of
@@ -978,7 +982,10 @@ BattleManager.getReadyATBBattler = function() {
 BattleManager.isBattlerATBReady = function(battler) {
     if (battler.atbRate() < 1) return false;
     if (battler.isATBCharging()) return false;
-    if (battler.currentAction() && battler.currentAction().item()) return false;
+    if (battler.currentAction() && battler.currentAction().item()) {
+      battler.setupATBCharge();
+      return false;
+    }
     return true;
 };
 

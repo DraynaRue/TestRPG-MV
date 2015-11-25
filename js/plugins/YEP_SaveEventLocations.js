@@ -11,7 +11,7 @@ Yanfly.SEL = Yanfly.SEL || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.01 Enable specified maps to memorize the locations of
+ * @plugindesc v1.02 Enable specified maps to memorize the locations of
  * events when leaving and loading them upon reentering map.
  * @author Yanfly Engine Plugins
  *
@@ -54,6 +54,9 @@ Yanfly.SEL = Yanfly.SEL || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.02:
+ * - Fixed a bug where battles would reset saved location notetags.
  *
  * Version 1.01:
  * - Fixed an incompatibility with the Set Event Location event command.
@@ -179,6 +182,9 @@ Game_Event.prototype.updateMove = function() {
 
 Game_Event.prototype.isSaveLocation = function() {
 		if ($gameMap.isSaveEventLocations()) return true;
+		if (this.event().saveEventLocation === undefined) {
+			DataManager.processSELNotetags2(this.event());
+		}
 		return this.event().saveEventLocation;
 };
 

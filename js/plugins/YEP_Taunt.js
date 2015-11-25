@@ -156,16 +156,6 @@ DataManager.processTauntNotetags2 = function(group) {
 };
 
 //=============================================================================
-// BattleManager
-//=============================================================================
-
-Yanfly.Taunt.BattleManager_startAction = BattleManager.startAction;
-BattleManager.startAction = function() {
-    this._subject.checkTauntTargets();
-    Yanfly.Taunt.BattleManager_startAction.call(this);
-};
-
-//=============================================================================
 // Game_BattlerBase
 //=============================================================================
 
@@ -239,14 +229,6 @@ Game_BattlerBase.prototype.ignoreTauntCertain = function() {
       if (state.ignoreCertainTaunt) return true;
     }
     return false;
-};
-
-//=============================================================================
-// Game_Battler
-//=============================================================================
-
-Game_Battler.prototype.checkTauntTargets = function() {
-
 };
 
 //=============================================================================

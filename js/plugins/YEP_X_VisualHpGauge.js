@@ -11,7 +11,7 @@ Yanfly.VHG = Yanfly.VHG || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.00 (Requires YEP_BattleEngineCore.js) Reveal HP Gauges
+ * @plugindesc v1.01b (Requires YEP_BattleEngineCore.js) Reveal HP Gauges
  * when a battler is selected or takes damage in battle.
  * @author Yanfly Engine Plugins
  *
@@ -25,6 +25,11 @@ Yanfly.VHG = Yanfly.VHG || {};
  *
  * @param Defeat First
  * @desc Enemies must be defeated first before showing the HP Gauge.
+ * NO - false     YES - true
+ * @default false
+ *
+ * @param Always Visible
+ * @desc HP Gauge is always visible and doesn't fade away.
  * NO - false     YES - true
  * @default false
  *
@@ -55,6 +60,38 @@ Yanfly.VHG = Yanfly.VHG || {};
  * @desc This is the frames the HP gauge will continue to show after
  * it finishes draining or filling.
  * @default 30
+ *
+ * @param Gauge Position
+ * @desc Where do you wish to show the HP gauge?
+ * BELOW - false     ABOVE - true
+ * @default false
+ *
+ * @param Y Buffer
+ * @desc How much do you wish to shift the gauge Y position?
+ * @default -15
+ *
+ * @param Use Thick Gauges
+ * @desc Use the thick gauges provided by this plugin?
+ * Default - false     Thick - true
+ * @default true
+ *
+ * @param ---Text Display---
+ * @default
+ *
+ * @param Show HP
+ * @desc Show the actual 'HP' text.
+ * NO - false     YES - true
+ * @default false
+ *
+ * @param Show Value
+ * @desc Show the HP value.
+ * NO - false     YES - true
+ * @default false
+ *
+ * @param Show Max
+ * @desc Show the MaxHP value if value is shown?
+ * NO - false     YES - true
+ * @default false
  *
  * @help
  * ============================================================================
@@ -101,6 +138,27 @@ Yanfly.VHG = Yanfly.VHG || {};
  *
  *   <HP Gauge Color 2: x>
  *   This changes the HP Gauge's color 2 to x text color.
+ *
+ * ============================================================================
+ * Changelog
+ * ============================================================================
+ *
+ * Version 1.01b:
+ * - Fixed a bug regarding dependancy checks.
+ * - Fixed many bugs regarding stacking errors.
+ *
+ * Version 1.01:
+ * - Rewrote the good majority of plugin to accomodate the following features:
+ * ---'Always Visible' parameter.
+ * ---'Gauge Position' parameter.
+ * ---'Y Buffer' parameter.
+ * ---'Use Thick Gauges' parameter.
+ * ---'Show HP' parameter.
+ * ---'Show Value' parameter.
+ * ---'Show Max' parameter.
+ *
+ * Version 1.00:
+ * - Finished Plugin!
  */
 //=============================================================================
 
@@ -115,12 +173,21 @@ Yanfly.Param = Yanfly.Param || {};
 
 Yanfly.Param.VHGDisplayActor = String(Yanfly.Parameters['Display Actor']);
 Yanfly.Param.VHGDefeatFirst = String(Yanfly.Parameters['Defeat First']);
+Yanfly.Param.VHGAlwaysShow = eval(String(Yanfly.Parameters['Always Visible']));
+
 Yanfly.Param.VHGMinHpWidth = Number(Yanfly.Parameters['Minimum Gauge Width']);
 Yanfly.Param.VHGGaugeHeight = Number(Yanfly.Parameters['Gauge Height']);
 Yanfly.Param.VHGBackColor = Number(Yanfly.Parameters['Back Color']);
 Yanfly.Param.VHGHpColor1 = Number(Yanfly.Parameters['HP Color 1']);
 Yanfly.Param.VHGHpColor2 = Number(Yanfly.Parameters['HP Color 2']);
 Yanfly.Param.VHGGaugeDuration = Number(Yanfly.Parameters['Gauge Duration']);
+Yanfly.Param.VHGGaugePos = eval(String(Yanfly.Parameters['Gauge Position']));
+Yanfly.Param.VHGBufferY = Number(Yanfly.Parameters['Y Buffer']);
+Yanfly.Param.VHGThick = eval(String(Yanfly.Parameters['Use Thick Gauges']));
+
+Yanfly.Param.VHGShowHP = eval(String(Yanfly.Parameters['Show HP']));
+Yanfly.Param.VHGShowValue = eval(String(Yanfly.Parameters['Show Value']));
+Yanfly.Param.VHGShowMax = eval(String(Yanfly.Parameters['Show Max']));
 
 //=============================================================================
 // DataManager
@@ -183,13 +250,13 @@ Game_System.prototype.initShownHpGauge = function() {
 };
 
 Game_System.prototype.showHpGaugeEnemy = function(id) {
-    if (this._shownHpGauge === undefined) this._shownHpGauge();
+    if (this._shownHpGauge === undefined) this.initShownHpGauge();
 		if (!eval(Yanfly.Param.VHGDefeatFirst)) return true;
 		return this._shownHpGauge.contains(id);
 };
 
 Game_System.prototype.addHpGaugeEnemy = function(id) {
-    if (this._shownHpGauge === undefined) this._shownHpGauge();
+    if (this._shownHpGauge === undefined) this.initShownHpGauge();
 		if (this._shownHpGauge.contains(id)) return;
 		this._shownHpGauge.push(id);
 };
@@ -280,9 +347,7 @@ Yanfly.VHG.Game_Enemy_die = Game_Enemy.prototype.die;
 Game_Enemy.prototype.die = function() {
     Yanfly.VHG.Game_Enemy_die.call(this);
 		if (eval(Yanfly.Param.VHGDefeatFirst)) {
-			if (!$gameSystem.showHpGaugeEnemy(this._enemyId)) {
-				this._noHpGauge = true;
-			}
+			if (!$gameSystem.showHpGaugeEnemy(this._enemyId)) this._noHpGauge = true;
 		}
 		$gameSystem.addHpGaugeEnemy(this._enemyId);
 };
@@ -319,209 +384,245 @@ Game_Enemy.prototype.hpGaugeColor2 = function() {
 		return this.enemy().hpGaugeColor2;
 };
 
+//=============================================================================
+// Sprite_Battler
+//=============================================================================
+
+Yanfly.VHG.Sprite_Battler_update = Sprite_Battler.prototype.update;
+Sprite_Battler.prototype.update = function() {
+    Yanfly.VHG.Sprite_Battler_update.call(this);
+    this.createVisualHpGaugeWindow();
+};
+
+Sprite_Battler.prototype.createVisualHpGaugeWindow = function() {
+		if (this._createdVisualHpGaugeWindow) return;
+		if (!this._battler) return;
+		if (this.checkVisualATBGauge()) {
+			if (!this._visualATBWindow) return;
+			if (!this.parent.parent.children.contains(this._visualATBWindow)) return;
+		}
+		this._createdVisualHpGaugeWindow = true;
+    this._visualHpGauge = new Window_VisualHPGauge();
+    this._visualHpGauge.setBattler(this._battler);
+    this.parent.parent.addChild(this._visualHpGauge);
+};
+
+Sprite_Battler.prototype.checkVisualATBGauge = function() {
+    if (!Imported.YEP_X_BattleSysATB) return false;
+    if (!BattleManager.isATB()) return false;
+    if (!Imported.YEP_X_VisualATBGauge) return false;
+    return this._battler.isEnemy();
+};
+
+Yanfly.VHG.Sprite_Battler_setBattler = Sprite_Battler.prototype.setBattler;
+Sprite_Battler.prototype.setBattler = function(battler) {
+    Yanfly.VHG.Sprite_Battler_setBattler.call(this, battler);
+    if (this._visualHpGauge) this._visualHpGauge.setBattler(battler);
+};
 
 //=============================================================================
-// Sprite_HpGauge
+// Window_VisualHPGauge
 //=============================================================================
 
-function Sprite_HpGauge() {
+function Window_VisualHPGauge() {
     this.initialize.apply(this, arguments);
 }
 
-Sprite_HpGauge.prototype = Object.create(Sprite.prototype);
-Sprite_HpGauge.prototype.constructor = Sprite_HpGauge;
+Window_VisualHPGauge.prototype = Object.create(Window_Base.prototype);
+Window_VisualHPGauge.prototype.constructor = Window_VisualHPGauge;
 
-Sprite_HpGauge.prototype.initialize = function(parentSprite) {
-    this._parentSprite = parentSprite;
-		Sprite.prototype.initialize.call(this);
-		this.loadWindowskin();
-		this.createFrontGauge();
-		this.anchor.x = 0.5;
-		this.anchor.y = 0.0;
+Window_VisualHPGauge.prototype.initialize = function() {
+    this._opacitySpeed = 255 / Yanfly.Param.VHGGaugeDuration;
+    this._dropSpeed = 0;
+    this._visibleCounter = 0;
+    Window_Base.prototype.initialize.call(this, 0, 0, 1, 1);
+    this._battler = null;
+    this._requestRefresh = false;
+    this._currentHpValue = 0;
+    this._displayedValue = 0;
+    this.contentsOpacity = 0;
+    this.opacity = 0;
 };
 
-Sprite_HpGauge.prototype.loadWindowskin = function() {
-    this.windowskin = ImageManager.loadSystem('Window');
+Window_VisualHPGauge.prototype.setBattler = function(battler) {
+    if (this._battler === battler) return;
+    this._battler = battler;
+    this._currentHpValue = this._battler.hp;
+    this._displayedValue = this._battler.hp;
 };
 
-Sprite_HpGauge.prototype.createFrontGauge = function() {
-    this._frontGauge = new Sprite_FrontGauge(this);
-		this.addChild(this._frontGauge);
+Window_VisualHPGauge.prototype.update = function() {
+    Window_Base.prototype.update.call(this);
+    if (!this._battler) return;
+    this.updateWindowAspects();
 };
 
-Sprite_HpGauge.prototype.getBattler = function() {
-		return this._parentSprite._battler;
+Window_VisualHPGauge.prototype.updateWindowAspects = function() {
+    this.updateWindowSize();
+    this.updateWindowPosition();
+    this.updateOpacity();
+    this.updateHpPosition();
+    this.updateRefresh();
 };
 
-Sprite_HpGauge.prototype.createBitmap = function() {
-		this._battler = this.getBattler();
-		var width = this._battler.hpGaugeWidth();
-		var height = this._battler.hpGaugeHeight();
-		this.bitmap = new Bitmap(width, height);
-		this.bitmap.smooth = true;
-		this.bitmap.fillRect(0, 0, width, height, this.gaugeBackColor());
-		this._frontGauge.createBitmap(width, height, this._battler);
+Window_VisualHPGauge.prototype.updateWindowSize = function() {
+    var spriteWidth = this._battler.hpGaugeWidth();
+    var width = spriteWidth + this.standardPadding() * 2;
+    var height = this.lineHeight() + this.standardPadding() * 2;
+    if (width === this.width && height === this.height) return;
+    this.width = width;
+    this.height = height;
+    this.createContents();
+    this._requestRefresh = true;
 };
 
-Sprite_HpGauge.prototype.textColor = function(n) {
-    var px = 96 + (n % 8) * 12 + 6;
-    var py = 144 + Math.floor(n / 8) * 12 + 6;
-    return this.windowskin.getPixel(px, py);
+Window_VisualHPGauge.prototype.updateWindowPosition = function() {
+    if (!this._battler) return;
+    var battler = this._battler;
+    this.x = battler.spritePosX();
+    this.x -= Math.ceil(this.width / 2);
+    this.y = battler.spritePosY();
+    if (Yanfly.Param.VHGGaugePos) {
+      this.y -= battler.spriteHeight();
+    } else {
+      this.y -= this.standardPadding();
+    }
+    this.y += Yanfly.Param.VHGBufferY;
 };
 
-Sprite_HpGauge.prototype.gaugeBackColor = function() {
-		var colorId = this.getBattler().hpGaugeBackColor();
-		return this.textColor(colorId);
+Window_VisualHPGauge.prototype.updateOpacity = function() {
+    if (this.isShowWindow()) {
+      this.contentsOpacity += 32;
+    } else {
+      this.contentsOpacity -= 32;
+    }
 };
 
-Sprite_HpGauge.prototype.update = function() {
-    Sprite.prototype.update.call(this);
-    if (this.getBattler()) {
-			if (this.getBattler() !== this._battler) this.createBitmap();
-			this.updatePosition();
-		}
-		this.updateOpacity();
+Window_VisualHPGauge.prototype.isShowWindow = function() {
+    if (!this._battler.isAppeared()) return false;
+    if (!this._battler.hpGaugeVisible()) return false;
+    if (Yanfly.Param.VHGAlwaysShow && !this._battler.isDead()) return true;
+    if (this._currentHpValue !== this._displayedValue) return true;
+    if (this._battler.isSelected()) return true;
+    --this._visibleCounter;
+    return this._visibleCounter > 0;
 };
 
-Sprite_HpGauge.prototype.updatePosition = function() {
-    this.x = this.getBattler().spritePosX();
-		this.y = this.getBattler().spritePosY();
+Window_VisualHPGauge.prototype.updateHpPosition = function() {
+    if (!this._battler) return;
+    if (this._currentHpValue !== this._battler.hp) {
+      this._visibleCounter = Yanfly.Param.VHGGaugeDuration;
+      this._currentHpValue = this._battler.hp;
+      var difference = Math.abs(this._displayedValue - this._battler.hp);
+      this._dropSpeed = Math.ceil(difference / Yanfly.Param.VHGGaugeDuration);
+    }
+    this.updateDisplayCounter();
 };
 
-Sprite_HpGauge.prototype.updateOpacity = function() {
-    if (this.getBattler() && this.getBattler().hpGaugeVisible()) {
-			if (this._battler.isSelected()) {
-				this.opacity = 255;
-			} else if (this._frontGauge.isUpdatingWidth()) {
-				this.opacity = 255;
-			} else {
-				this.opacity = 0;
-			}
-		} else {
-			this.opacity = 0;
-		}
+Window_VisualHPGauge.prototype.updateDisplayCounter = function() {
+    if (this._currentHpValue == this._displayedValue) return;
+    var d = this._dropSpeed;
+    var c = this._currentHpValue;
+    if (this._displayedValue > this._currentHpValue) {
+      this._displayedValue = Math.max(this._displayedValue - d, c);
+    } else if (this._displayedValue < this._currentHpValue) {
+      this._displayedValue = Math.min(this._displayedValue + d, c);
+    }
+    this._requestRefresh = true;
 };
+
+Window_VisualHPGauge.prototype.updateRefresh = function() {
+    if (this._requestRefresh) this.refresh();
+};
+
+Window_VisualHPGauge.prototype.refresh = function() {
+    this.contents.clear();
+    if (!this._battler) return;
+    this._requestRefresh = false;
+    var wy = this.contents.height - this.lineHeight();
+    var ww = this.contents.width;
+    this.drawActorHp(this._battler, 0, wy, ww);
+};
+
+Window_VisualHPGauge.prototype.gaugeBackColor = function() {
+    return this.textColor(this._battler.hpGaugeBackColor());
+};
+
+Window_VisualHPGauge.prototype.hpGaugeColor1 = function() {
+    return this.textColor(this._battler.hpGaugeColor1());
+};
+
+Window_VisualHPGauge.prototype.hpGaugeColor2 = function() {
+    return this.textColor(this._battler.hpGaugeColor2());
+};
+
+Window_VisualHPGauge.prototype.drawActorHp = function(actor, x, y, width) {
+    width = width || 186;
+    var color1 = this.hpGaugeColor1();
+    var color2 = this.hpGaugeColor2();
+    var rate = this._displayedValue / actor.mhp;
+    this.drawGauge(x, y, width, rate, color1, color2);
+    if (Yanfly.Param.VHGShowHP) {
+      this.changeTextColor(this.systemColor());
+      this.drawText(TextManager.hpA, x, y, 44);
+    }
+    if (Yanfly.Param.VHGShowValue) {
+      var val = this._displayedValue
+      var max = actor.mhp;
+      var w = width;
+      var color = this.hpColor(actor);
+      this.drawCurrentAndMax(val, max, x, y, w, color, this.normalColor());
+    }
+};
+
+Window_VisualHPGauge.prototype.drawCurrentAndMax = function(current, max, x, y,
+                                                   width, color1, color2) {
+    if (Yanfly.Param.VHGShowMax) {
+      Window_Base.prototype.drawCurrentAndMax.call(this, current, max,
+        x, y, width, color1, color2);
+    } else {
+      var align = Yanfly.Param.VHGShowHP ? 'right' : 'center';
+      var text = Yanfly.Util.toGroup(current);
+      this.changeTextColor(color1);
+      this.drawText(text, x, y, width, align);
+    }
+};
+
+if (Imported.YEP_CoreEngine && Yanfly.Param.VHGThick) {
+
+Window_VisualHPGauge.prototype.drawGauge =
+function(dx, dy, dw, rate, color1, color2) {
+    var color3 = this.gaugeBackColor();
+    var fillW = Math.floor(dw * rate).clamp(0, dw);
+    var gaugeH = this.gaugeHeight();
+    var gaugeY = dy + this.lineHeight() - gaugeH - 2;
+    if (eval(Yanfly.Param.GaugeOutline)) {
+      color3.paintOpacity = this.translucentOpacity();
+      this.contents.fillRect(dx, gaugeY, dw, gaugeH, color3);
+      dx += 2;
+      gaugeY += 2;
+      fillW = Math.max(0, fillW - 4);
+      gaugeH -= 4;
+    } else {
+      var fillW = Math.floor(dw * rate);
+      var gaugeY = dy + this.lineHeight() - gaugeH - 2;
+      this.contents.fillRect(dx, gaugeY, dw, gaugeH, color3);
+    }
+    this.contents.gradientFillRect(dx, gaugeY, fillW, gaugeH, color1, color2);
+};
+
+} // Imported.YEP_CoreEngine
 
 //=============================================================================
-// Scene_Battle
+// Utilities
 //=============================================================================
 
-function Sprite_FrontGauge() {
-    this.initialize.apply(this, arguments);
-}
+Yanfly.Util = Yanfly.Util || {};
 
-Sprite_FrontGauge.prototype = Object.create(Sprite.prototype);
-Sprite_FrontGauge.prototype.constructor = Sprite_FrontGauge;
-
-Sprite_FrontGauge.prototype.initialize = function(parentSprite) {
-		this._parentSprite = parentSprite;
-		Sprite.prototype.initialize.call(this);
-		this.loadWindowskin();
-		this.anchor.y = 0.0;
-};
-
-Sprite_FrontGauge.prototype.loadWindowskin = function() {
-    this.windowskin = ImageManager.loadSystem('Window');
-};
-
-Sprite_FrontGauge.prototype.textColor = function(n) {
-    var px = 96 + (n % 8) * 12 + 6;
-    var py = 144 + Math.floor(n / 8) * 12 + 6;
-    return this.windowskin.getPixel(px, py);
-};
-
-Sprite_FrontGauge.prototype.createBitmap = function(width, height, battler) {
-		this._battler = battler;
-		this._gaugeHp = this.currentBattlerHp();
-		this._gaugeDur = 0;
-		this.bitmap = new Bitmap(width - 3, height);
-		this.bitmap.smooth = true;
-		var color1 = this.hpGaugeColor1();
-		var color2 = this.hpGaugeColor2();
-		this.bitmap.gradientFillRect(1, 2, width - 4, height - 4, color1, color2);
-};
-
-Sprite_FrontGauge.prototype.hpGaugeColor1 = function() {
-    var colorId = this._battler.hpGaugeColor1();
-		return this.textColor(colorId);
-};
-
-Sprite_FrontGauge.prototype.hpGaugeColor2 = function() {
-    var colorId = this._battler.hpGaugeColor2();
-		return this.textColor(colorId);
-};
-
-Sprite_FrontGauge.prototype.update = function() {
-    Sprite.prototype.update.call(this);
-		if (this._battler) {
-			this.updatePosition();
-			this.updateWidth();
-		}
-};
-
-Sprite_FrontGauge.prototype.updatePosition = function() {
-    this.x = -this._parentSprite.width / 2 + 1;
-};
-
-Sprite_FrontGauge.prototype.updateWidth = function() {
-		if (this.currentBattlerHp() > this._gaugeHp) {
-			this._gaugeHp = this._gaugeHp + this.increment();
-			this._gaugeHp = Math.min(this.currentBattlerHp(), this._gaugeHp);
-			this._gaugeDur = Yanfly.Param.VHGGaugeDuration;
-		} else if (this.currentBattlerHp() < this._gaugeHp) {
-			this._gaugeHp = this._gaugeHp - this.increment();
-			this._gaugeHp = Math.max(this.currentBattlerHp(), this._gaugeHp);
-			this._gaugeDur = Yanfly.Param.VHGGaugeDuration;
-		}
-		var width = this._gaugeHp * this._battler.hpGaugeWidth();
-		width /= this._battler.mhp;
-		width -= 2;
-		this.width = width;
-};
-
-Sprite_FrontGauge.prototype.increment = function() {
-		return Math.max(this._battler.mhp / 100, 5);
-};
-
-Sprite_FrontGauge.prototype.updateOpacity = function() {
-		this.opacity = this._parentSprite.opacity;
-};
-
-Sprite_FrontGauge.prototype.currentBattlerHp = function() {
-		return this._battler.hp;
-};
-
-Sprite_FrontGauge.prototype.isUpdatingWidth = function() {
-		if (this.currentBattlerHp() !== this._gaugeHp) return true;
-		this._gaugeDur--;
-		return (this._gaugeDur > 0);
-};
-
-//=============================================================================
-// Scene_Battle
-//=============================================================================
-
-Spriteset_Battle.prototype.createVisualHpGauges = function() {
-    this._visualHpGauges = [];
-		for (var i = 0; i < this.battlerSprites().length; ++i) {
-			this._visualHpGauges[i] = new Sprite_HpGauge(this.battlerSprites()[i]);
-			this.addChild(this._visualHpGauges[i]);
-		}
-};
-
-//=============================================================================
-// Scene_Battle
-//=============================================================================
-
-Yanfly.VHG.Scene_Battle_createDisplayObjects =
-		Scene_Battle.prototype.createDisplayObjects;
-Scene_Battle.prototype.createDisplayObjects = function() {
-    Yanfly.VHG.Scene_Battle_createDisplayObjects.call(this);
-		this.createVisualHpGauges();
-};
-
-Scene_Battle.prototype.createVisualHpGauges = function() {
-    this._spriteset.createVisualHpGauges();
+if (!Yanfly.Util.toGroup) {
+    Yanfly.Util.toGroup = function(inVal) {
+        return inVal;
+    }
 };
 
 //=============================================================================

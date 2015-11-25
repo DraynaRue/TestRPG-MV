@@ -11,7 +11,7 @@ Yanfly.Equip = Yanfly.Equip || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.05 Allows for the equipment system to be more flexible to
+ * @plugindesc v1.06 Allows for the equipment system to be more flexible to
  * allow for unique equipment slots per class.
  * @author Yanfly Engine Plugins
  *
@@ -153,7 +153,11 @@ Yanfly.Equip = Yanfly.Equip || {};
  * Changelog
  * ============================================================================
  *
- * version 1.05:
+ * Version 1.06:
+ * - Fixed a bug with 'Change Equipment' event where it would only change the
+ * slot of the marked equipment rather than the slot type.
+ *
+ * Version 1.05:
  * - Fixed an issue where unequipping items can kill actors.
  *
  * Version 1.04a:
@@ -495,6 +499,19 @@ Game_Actor.prototype.evalParamPlus = function(item, paramId) {
         break;
     }
     return value + all;
+};
+
+//=============================================================================
+// Game_Interpreter
+//=============================================================================
+
+// Change Equipment
+Game_Interpreter.prototype.command319 = function() {
+    var actor = $gameActors.actor(this._params[0]);
+    if (!actor) return true;
+    var index = actor.equipSlots().indexOf(this._params[1]) + 1;
+    actor.changeEquipById(index, this._params[2]);
+    return true;
 };
 
 //=============================================================================

@@ -11,7 +11,7 @@ Yanfly.Party = Yanfly.Party || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.01 Replaces the default 'Formation' command with a new
+ * @plugindesc v1.03 Replaces the default 'Formation' command with a new
  * menu for players to easily change party formations.
  * @author Yanfly Engine Plugins
  *
@@ -204,6 +204,14 @@ Yanfly.Party = Yanfly.Party || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.03:
+ * - Fixed a bug that would cause AutoBattlers to stall if they got added into
+ * the party mid-battle.
+ *
+ * Version 1.02:
+ * - Made a change so that the number of followers updates properly when you
+ * increase the maximum number of battle members.
  *
  * Version 1.01:
  * - Added 'Battle Cooldown' plugin parameter.
@@ -465,6 +473,15 @@ Game_Party.prototype.lockActor = function(actorId) {
     if (actor) actor._locked = true;
 };
 
+Game_Party.prototype.reconstructActions = function(actorId) {
+    for (var i = 0; i < this.members().length; ++i) {
+      var member = this.members()[i];
+      if (!member) continue;
+      if (member.currentAction() && member.currentAction().item()) continue;
+      member.makeActions();
+    }
+};
+
 //=============================================================================
 // Game_Troop
 //=============================================================================
@@ -473,6 +490,19 @@ Yanfly.Party.Game_Troop_increaseTurn = Game_Troop.prototype.increaseTurn;
 Game_Troop.prototype.increaseTurn = function() {
     Yanfly.Party.Game_Troop_increaseTurn.call(this);
     $gameSystem.updateBattleFormationCooldown();
+};
+
+//=============================================================================
+// Game_Player
+//=============================================================================
+
+Game_Followers.prototype.initialize = function() {
+    this._visible = $dataSystem.optFollowers;
+    this._gathering = false;
+    this._data = [];
+    for (var i = 1; i < $dataActors.length; i++) {
+        this._data.push(new Game_Follower(i));
+    }
 };
 
 //=============================================================================
@@ -1413,7 +1443,7 @@ Scene_Party.prototype.commandRevert = function() {
 
 Scene_Party.prototype.commandFinish = function() {
     if ($gameParty.inBattle()) {
-      $gameParty.makeActions();
+      $gameParty.reconstructActions();
       if (BattleManager._savedActor) {
         BattleManager._actorIndex = BattleManager._savedActor.index();
       }
