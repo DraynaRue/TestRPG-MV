@@ -10,5 +10,5 @@ null,
 {"id":8,"expanded":false,"name":"Intro","order":1,"parentId":0,"scrollX":819,"scrollY":475},
 {"id":9,"expanded":true,"name":"Floor1Intro","order":2,"parentId":8,"scrollX":1786.909090909091,"scrollY":1042.909090909091},
 {"id":10,"expanded":false,"name":"TownBeginningsInn","order":10,"parentId":6,"scrollX":2340,"scrollY":1434},
-{"id":11,"expanded":true,"name":"Floor2","order":11,"parentId":0,"scrollX":811,"scrollY":1383}
+{"id":11,"expanded":true,"name":"Floor2","order":11,"parentId":0,"scrollX":811,"scrollY":1375}
 ]

@@ -11,7 +11,7 @@ Yanfly.SLS = Yanfly.SLS || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.02 Allows actors to learn skills from the skill menu
+ * @plugindesc v1.03 Allows actors to learn skills from the skill menu
  * through crafting them via items or otherwise.
  * @author Yanfly Engine Plugins
  *
@@ -206,6 +206,9 @@ Yanfly.SLS = Yanfly.SLS || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.03:
+ * - Fixed a bug where JP values weren't updated upon learning.
  *
  * Version 1.02:
  * - Reversed the display for item requirements so it is now Held/Needed.
@@ -1538,6 +1541,24 @@ Scene_LearnSkill.prototype.onLearnOk = function() {
     this.processLearnSkill(skill, classId);
 };
 
+Scene_LearnSkill.prototype.refreshStatus = function() {
+    var actor = JsonEx.makeDeepCopy(this.actor());
+    if (!actor) return;
+    var classId = this._commandWindow.currentExt();
+    this._commandWindow._currentClass = this._commandWindow.currentExt();
+    var hpRate = actor.hp / actor.mhp;
+    var mpRate = actor.mp / Math.max(1, actor.mmp);
+    if (Imported.YEP_ClassChangeCore) {
+      actor.changeClass(classId, eval(Yanfly.Param.CCCMaintainLv));
+    } else {
+      actor.changeClass(classId, change);
+    }
+    var hpAmount = Math.max(1, parseInt(actor.mhp * hpRate));
+    actor.setHp(hpAmount);
+    actor.setMp(parseInt(actor.mmp * mpRate));
+    this._statusWindow.setActor(actor);
+};
+
 Scene_LearnSkill.prototype.processLearnSkill = function(skill, classId) {
   this._skillLearnWindow.activate();
   this.actor().learnSkill(skill.id);
@@ -1548,7 +1569,7 @@ Scene_LearnSkill.prototype.processLearnSkill = function(skill, classId) {
   if (Imported.YEP_JobPoints) this.actor().loseJp(skill.learnCostJp, classId);
   this.actor().refresh();
   this._skillLearnWindow.refresh();
-  this._statusWindow.refresh();
+  this.refreshStatus();
   if (this._goldWindow) this._goldWindow.refresh();
   if (this._classListWindow) this._classListWindow.refresh();
   this._skillLearnDataWindow.refresh();

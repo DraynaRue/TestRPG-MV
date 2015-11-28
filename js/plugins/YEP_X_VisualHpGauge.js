@@ -11,7 +11,7 @@ Yanfly.VHG = Yanfly.VHG || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.01b (Requires YEP_BattleEngineCore.js) Reveal HP Gauges
+ * @plugindesc v1.02 (Requires YEP_BattleEngineCore.js) Reveal HP Gauges
  * when a battler is selected or takes damage in battle.
  * @author Yanfly Engine Plugins
  *
@@ -68,7 +68,7 @@ Yanfly.VHG = Yanfly.VHG || {};
  *
  * @param Y Buffer
  * @desc How much do you wish to shift the gauge Y position?
- * @default -15
+ * @default -16
  *
  * @param Use Thick Gauges
  * @desc Use the thick gauges provided by this plugin?
@@ -142,6 +142,9 @@ Yanfly.VHG = Yanfly.VHG || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.02:
+ * - Fixed a bug with gauge height not adjusting.
  *
  * Version 1.01b:
  * - Fixed a bug regarding dependancy checks.
@@ -468,7 +471,8 @@ Window_VisualHPGauge.prototype.updateWindowAspects = function() {
 Window_VisualHPGauge.prototype.updateWindowSize = function() {
     var spriteWidth = this._battler.hpGaugeWidth();
     var width = spriteWidth + this.standardPadding() * 2;
-    var height = this.lineHeight() + this.standardPadding() * 2;
+    var height = Math.max(this.lineHeight(), this.gaugeHeight() + 4);
+    height += this.standardPadding() * 2;
     if (width === this.width && height === this.height) return;
     this.width = width;
     this.height = height;
@@ -586,6 +590,11 @@ Window_VisualHPGauge.prototype.drawCurrentAndMax = function(current, max, x, y,
       this.changeTextColor(color1);
       this.drawText(text, x, y, width, align);
     }
+};
+
+Window_VisualHPGauge.prototype.gaugeHeight = function() {
+    if (!this._battler) return Window_Base.prototype.gaugeHeight.call(this);
+    return this._battler.hpGaugeHeight();
 };
 
 if (Imported.YEP_CoreEngine && Yanfly.Param.VHGThick) {

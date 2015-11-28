@@ -11,7 +11,7 @@ Yanfly.BEC = Yanfly.BEC || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.18 Have more control over the flow of the battle system
+ * @plugindesc v1.20 Have more control over the flow of the battle system
  * with this plugin and alter various aspects to your liking.
  * @author Yanfly Engine Plugins
  *
@@ -196,6 +196,11 @@ Yanfly.BEC = Yanfly.BEC || {};
  * @param Turn Time
  * @desc How many ticks must past to equal 1 turn?
  * @default 100
+ * 
+ * @param AI Self Turns
+ * @desc Set AI to be based on their own individual turns?
+ * NO - false     YES - true
+ * @default true
  *
  * @param ---Window Settings---
  * @default
@@ -548,6 +553,46 @@ Yanfly.BEC = Yanfly.BEC || {};
  *   find that perfect anchor setting.
  *
  * ============================================================================
+ * Enemy Attack Animation
+ * ============================================================================
+ *
+ * To give your enemies unique attack animations, you can use this notetag:
+ *
+ * Enemy Notetag:
+ *   <Attack Animation: x>
+ *   Replace x with the ID of the battle animation you wish to set as the
+ *   enemy's default attack animation.
+ *
+ * ============================================================================
+ * Automatic State Removal Conditions
+ * ============================================================================
+ *
+ * By default, RPG Maker MV's battle system has automatic state removal under
+ * three different conditions: none, action end, turn end.
+ *
+ * None and Turn End are working as intended. However, Action End, however, had
+ * the states removed at the start of the battler's action rather than the end.
+ * This is changed and updated to occur only at the end of a battler's action.
+ *
+ * Two more automatic conditions are now added: Action Start and Turn Start.
+ * These can be added and implemented using the following notetags:
+ *
+ * State Notetags:
+ *   <Action Start: x>
+ *   <Action Start: x to y>
+ *   This will cause this state to update its turns remaining at the start of
+ *   an action. x is the number of turns it will last. If you use x to y, upon
+ *   applying the state, the state will be removed a random number of turns
+ *   from x to y.
+ *
+ *   <Turn Start: x>
+ *   <Turn Start: x to y>
+ *   This will cause the state to update its turns remaining at the start of a
+ *   battle turn. x is the number of turns it will last. If you use x to y,
+ *   upon applying the state, the state will be removed a random number of
+ *   turns from x to y.
+ *
+ * ============================================================================
  * Action Sequences
  * ============================================================================
  *
@@ -561,6 +606,19 @@ Yanfly.BEC = Yanfly.BEC || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.20:
+ * - Fixed a bug where revived actors using instant cast aren't properly set to
+ * use actions immediately.
+ *
+ * Version 1.19:
+ * - Added <Attack Animation: x> notetag for enemies.
+ * - Added 'AI Self Turns' for Tick-Based Battles. Enemies can now have their
+ * A.I. revolve around their own individual turns rather than the battle's.
+ * - Mechanic change for states. Following suit with the change to Action End
+ * removal, there are now two more conditions added: Action Start, Turn Start.
+ * - Added <Action Start: x>, <Action Start: x to y>, <Turn Start: x>, and
+ * <Turn Start: x to y> notetags for automatic state removal.
  *
  * Version 1.18:
  * - Fixed a bug with irregular targeting scopes.
@@ -726,6 +784,7 @@ Yanfly.Param.BECMotionWait = String(Yanfly.Parameters['Motion Waiting']);
 Yanfly.Param.BECTimeStates = String(Yanfly.Parameters['Timed States']);
 Yanfly.Param.BECTimeBuffs = String(Yanfly.Parameters['Timed Buffs']);
 Yanfly.Param.BECTurnTime = Number(Yanfly.Parameters['Turn Time']);
+Yanfly.Param.BECAISelfTurn = eval(String(Yanfly.Parameters['AI Self Turns']));
 Yanfly.Param.BECLowerWindows = String(Yanfly.Parameters['Lower Windows']);
 Yanfly.Param.BECEnemySelect = String(Yanfly.Parameters['Visual Enemy Select']);
 Yanfly.Param.BECActorSelect = String(Yanfly.Parameters['Visual Actor Select']);
@@ -771,6 +830,7 @@ DataManager.isDatabaseLoaded = function() {
     this.processBECNotetags4($dataEnemies);
     this.processBECNotetags4($dataStates);
     this.processBECNotetags5($dataActors);
+    this.processBECNotetags6($dataStates);
     return true;
 };
 
@@ -1048,6 +1108,44 @@ DataManager.processBECNotetags5 = function(group) {
   }
 };
 
+DataManager.processBECNotetags6 = function(group) {
+  var note1a = /<(?:ACTION START):[ ](\d+)>/i;
+  var note1b = /<(?:ACTION START):[ ](\d+)[ ](?:THROUGH|to)[ ](\d+)>/i;
+  var note2a = /<(?:TURN START):[ ](\d+)>/i;
+  var note2b = /<(?:TURN START):[ ](\d+)[ ](?:THROUGH|to)[ ](\d+)>/i;
+  for (var n = 1; n < group.length; n++) {
+    var obj = group[n];
+    var notedata = obj.note.split(/[\r\n]+/);
+
+    for (var i = 0; i < notedata.length; i++) {
+      var line = notedata[i];
+      if (line.match(note1a)) {
+        var turns = parseInt(RegExp.$1);
+        obj.autoRemovalTiming = 3;
+        obj.maxTurns = turns;
+        obj.minTurns = turns;
+      } else if (line.match(note1b)) {
+        var turns1 = parseInt(RegExp.$1);
+        var turns2 = parseInt(RegExp.$2);
+        obj.autoRemovalTiming = 3;
+        obj.maxTurns = turns1;
+        obj.minTurns = turns2;
+      } else if (line.match(note2a)) {
+        var turns = parseInt(RegExp.$1);
+        obj.autoRemovalTiming = 4;
+        obj.maxTurns = turns;
+        obj.minTurns = turns;
+      } else if (line.match(note2b)) {
+        var turns1 = parseInt(RegExp.$1);
+        var turns2 = parseInt(RegExp.$2);
+        obj.autoRemovalTiming = 4;
+        obj.maxTurns = turns1;
+        obj.minTurns = turns2;
+      }
+    }
+  }
+};
+
 //=============================================================================
 // BattleManager
 //=============================================================================
@@ -1186,6 +1284,15 @@ BattleManager.changeActor = function(newActorIndex, lastActorActionState) {
         newActor.setActionState('inputting');
         newActor.spriteStepForward();
     }
+};
+
+BattleManager.createActions = function() {
+    $gameParty.createActions();
+    $gameTroop.createActions();
+};
+
+BattleManager.clearInputtingAction = function() {
+    if (this.inputtingAction()) this.inputtingAction().clear();
 };
 
 Yanfly.BEC.BattleManager_checkBattleEnd = BattleManager.checkBattleEnd;
@@ -2396,6 +2503,21 @@ Sprite_StateIcon.prototype.updateMirror = function() {
 };
 
 //=============================================================================
+// Sprite_StateOverlay
+//=============================================================================
+
+Yanfly.BEC.Sprite_StateOverlay_update = Sprite_StateOverlay.prototype.update;
+Sprite_StateOverlay.prototype.update = function() {
+    Yanfly.BEC.Sprite_StateOverlay_update.call(this);
+    this.updateMirror();
+};
+
+Sprite_StateOverlay.prototype.updateMirror = function() {
+    if (this.parent.scale.x < 0) this.scale.x = -1 * Math.abs(this.scale.x);
+    if (this.parent.scale.x > 0) this.scale.x = Math.abs(this.scale.x);
+};
+
+//=============================================================================
 // Spriteset_Battle
 //=============================================================================
 
@@ -2583,13 +2705,17 @@ Game_BattlerBase.prototype.updateStateTicks = function() {
     }
 };
 
-Game_BattlerBase.prototype.updateStateActionEnd = function() {
+Game_BattlerBase.prototype.updateStateTurns = function() {
+    this.updateStateTurnEnd();
+};
+
+Game_BattlerBase.prototype.updateStateTurnTiming = function(timing) {
     var statesRemoved = [];
     for (var i = 0; i < this._states.length; ++i) {
       var stateId = this._states[i];
       var state = $dataStates[stateId];
       if (!state) continue;
-      if (state.autoRemovalTiming !== 1) continue;
+      if (state.autoRemovalTiming !== timing) continue;
       if (!this._stateTurns[stateId]) continue;
       this._stateTurns[stateId] -= 1;
       if (this._stateTurns[stateId] <= 0) statesRemoved.push(stateId);
@@ -2598,6 +2724,22 @@ Game_BattlerBase.prototype.updateStateActionEnd = function() {
       var stateId = statesRemoved[i];
       this.removeState(stateId);
     }
+};
+
+Game_BattlerBase.prototype.updateStateActionStart = function() {
+    this.updateStateTurnTiming(3);
+};
+
+Game_BattlerBase.prototype.updateStateActionEnd = function() {
+    this.updateStateTurnTiming(1);
+};
+
+Game_BattlerBase.prototype.updateStateTurnStart = function() {
+    this.updateStateTurnTiming(4);
+};
+
+Game_BattlerBase.prototype.updateStateTurnEnd = function() {
+    this.updateStateTurnTiming(2);
 };
 
 Game_BattlerBase.prototype.updateBuffTicks = function() {
@@ -2635,10 +2777,19 @@ Game_BattlerBase.prototype.paySkillCost = function(skill) {
 // Game_Battler
 //=============================================================================
 
+Yanfly.BEC.Game_Battler_useItem = Game_Battler.prototype.useItem;
+Game_Battler.prototype.useItem = function(item) {
+    Yanfly.BEC.Game_Battler_useItem.call(this, item);
+    if (!$gameParty.inBattle()) return;
+    this.increaseSelfTurnCount();
+    this.updateStateActionStart();
+};
+
 Yanfly.BEC.Game_Battler_onBattleStart = Game_Battler.prototype.onBattleStart;
 Game_Battler.prototype.onBattleStart = function() {
     Yanfly.BEC.Game_Battler_onBattleStart.call(this);
     this._immortalState = false;
+    this._selfTurnCount = 0;
 };
 
 Yanfly.BEC.Game_Battler_onBattleEnd = Game_Battler.prototype.onBattleEnd;
@@ -3057,6 +3208,7 @@ Game_Battler.prototype.requestMotionRefresh = function() {
 };
 
 Game_Battler.prototype.onTurnStart = function() {
+    this.updateStateTurnStart();
 };
 
 Game_Battler.prototype.onTurnEnd = function() {
@@ -3084,6 +3236,24 @@ Game_Battler.prototype.onAllActionsEnd = function() {
 Game_Battler.prototype.updateTick = function() {
     if (BattleManager.timeBasedStates()) this.updateStateTicks();
     if (BattleManager.timeBasedBuffs()) this.updateBuffTicks();
+};
+
+Game_Battler.prototype.increaseSelfTurnCount = function() {
+    if (this._selfTurnCount === undefined) this._selfTurnCount = 0;
+    this._selfTurnCount += 1;
+};
+
+Game_Battler.prototype.turnCount = function() {
+    if (BattleManager.isTurnBased()) return $gameTroop.turnCount();
+    if (BattleManager.isTickBased() && Yanfly.Param.BECAISelfTurn) {
+      return this._selfTurnCount;
+    }
+    return $gameTroop.turnCount();
+};
+
+Game_Battler.prototype.createActions = function() {
+    if (this.currentAction()) return;
+    this.makeActions();
 };
 
 //=============================================================================
@@ -3243,26 +3413,46 @@ Game_Enemy.prototype.spriteCanMove = function() {
     return Game_Battler.prototype.spriteCanMove.call(this);
 };
 
+Game_Enemy.prototype.meetsTurnCondition = function(param1, param2) {
+    var n = this.turnCount();
+    if (param2 === 0) {
+        return n === param1;
+    } else {
+        return n > 0 && n >= param1 && n % param2 === param1 % param2;
+    }
+};
+
 //=============================================================================
 // Game_Unit
 //=============================================================================
 
+Game_Unit.prototype.createActions = function() {
+    var max = this.members().length;
+    for (var i = 0; i < max; ++i) {
+      var member = this.members()[i];
+      if (member) member.createActions();
+    }
+};
+
 Game_Unit.prototype.requestMotionRefresh = function() {
-    for (var i = 0; i < this.members().length; ++i) {
+    var max = this.members().length;
+    for (var i = 0; i < max; ++i) {
       var member = this.members()[i];
       if (member) member.requestMotionRefresh();
     }
 };
 
 Game_Unit.prototype.onTurnStart = function() {
-    for (var i = 0; i < this.members().length; ++i) {
+    var max = this.members().length;
+    for (var i = 0; i < max; ++i) {
       var member = this.members()[i];
       if (member) member.onTurnStart();
     }
 };
 
 Game_Unit.prototype.updateTick = function() {
-    for (var i = 0; i < this.members().length; ++i) {
+    var max = this.members().length;
+    for (var i = 0; i < max; ++i) {
       var member = this.members()[i];
       if (member) member.updateTick();
     }
@@ -3392,6 +3582,7 @@ Scene_Battle.prototype.commandItem = function() {
 Yanfly.BEC.Scene_Battle_startActorCommandSelection =
     Scene_Battle.prototype.startActorCommandSelection;
 Scene_Battle.prototype.startActorCommandSelection = function() {
+    BattleManager.createActions();
     Yanfly.BEC.Scene_Battle_startActorCommandSelection.call(this);
     this._statusWindow.refresh();
 };
@@ -3411,6 +3602,7 @@ Scene_Battle.prototype.onActorCancel = function() {
     this._helpWindow.clear();
     Yanfly.BEC.Scene_Battle_onActorCancel.call(this);
     BattleManager.stopAllSelection();
+    BattleManager.clearInputtingAction();
 };
 
 Yanfly.BEC.Scene_Battle_selectEnemySelection =
@@ -3428,6 +3620,7 @@ Scene_Battle.prototype.onEnemyCancel = function() {
     this._helpWindow.clear();
     Yanfly.BEC.Scene_Battle_onEnemyCancel.call(this);
     BattleManager.stopAllSelection();
+    BattleManager.clearInputtingAction();
 };
 
 Yanfly.BEC.Scene_Battle_onSelectAction = Scene_Battle.prototype.onSelectAction;
@@ -3450,6 +3643,7 @@ Yanfly.BEC.Scene_Battle_onSkillCancel =
 Scene_Battle.prototype.onSkillCancel = function() {
     this._helpWindow.clear();
     Yanfly.BEC.Scene_Battle_onSkillCancel.call(this);
+    BattleManager.clearInputtingAction();
 };
 
 Yanfly.BEC.Scene_Battle_onItemOk =
@@ -3464,6 +3658,7 @@ Yanfly.BEC.Scene_Battle_onItemCancel =
 Scene_Battle.prototype.onItemCancel = function() {
     this._helpWindow.clear();
     Yanfly.BEC.Scene_Battle_onItemCancel.call(this);
+    BattleManager.clearInputtingAction();
 };
 
 //=============================================================================

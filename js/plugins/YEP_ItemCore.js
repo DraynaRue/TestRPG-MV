@@ -11,7 +11,7 @@ Yanfly.Item = Yanfly.Item || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.11 Changes the way Items are handled for your game
+ * @plugindesc v1.12 Changes the way Items are handled for your game
  * and the Item Scene, too.
  * @author Yanfly Engine Plugins
  *
@@ -42,6 +42,11 @@ Yanfly.Item = Yanfly.Item || {};
  * @desc Randomize the stats found for non shop items by this value
  * either positive or negative. Set as 0 for no random.
  * @default 5
+ *
+ * @param Negative Variance
+ * @desc If using random variance, allow random variance equipment
+ * stats to go under 0? NO - false     YES - true
+ * @default false
  *
  * @param Name Format
  * @desc How item names will be ordered and structured.
@@ -288,6 +293,9 @@ Yanfly.Item = Yanfly.Item || {};
  * Changelog
  * ============================================================================
  *
+ * Version 1.12:
+ * - Added 'Negative Variance' parameter.
+ *
  * Version 1.11:
  * - Fixed a bug that caused random variance to not calculate correctly.
  * - Fixed a bug that didn't return the correct conditional branch results.
@@ -348,9 +356,11 @@ Yanfly.Param.ItemMaxWeapons = Number(Yanfly.Parameters['Max Weapons']);
 Yanfly.Param.ItemMaxArmors = Number(Yanfly.Parameters['Max Armors']);
 Yanfly.Param.ItemStartingId = Number(Yanfly.Parameters['Starting ID']);
 Yanfly.Param.ItemRandomVariance = Number(Yanfly.Parameters['Random Variance']);
+Yanfly.Param.ItemNegVar = eval(String(Yanfly.Parameters['Negative Variance']));
 Yanfly.Param.ItemNameFmt = String(Yanfly.Parameters['Name Format']);
 Yanfly.Param.ItemNameSpacing = String(Yanfly.Parameters['Name Spacing']);
 Yanfly.Param.ItemBoostFmt = String(Yanfly.Parameters['Boost Format']);
+
 Yanfly.Param.ItemSceneItem = String(Yanfly.Parameters['Updated Scene Item']);
 Yanfly.Param.ItemShEquipped = String(Yanfly.Parameters['List Equipped Items']);
 Yanfly.Param.ItemShowIcon = String(Yanfly.Parameters['Show Icon']);
@@ -634,7 +644,7 @@ ItemManager.randomizeInitialEffects = function(baseItem, newItem) {
           var boost = Math.floor(Math.random() * randomValue - offset);
           effect.value1 += boost * 0.01;
           effect.value1 = effect.value1.toFixed(2);
-          effect.value1 = Math.max(0.00, Math.min(1.00, effect.value1));
+          effect.value1 = effect.value1.clamp(0, 1);
         }
         if (effect.value2 !== 0) {
           effect.value2 += Math.floor(Math.random() * randomValue - offset);
@@ -645,7 +655,7 @@ ItemManager.randomizeInitialEffects = function(baseItem, newItem) {
           var boost = Math.floor(Math.random() * randomValue - offset);
           effect.value1 += boost * 0.01;
           effect.value1 = effect.value1.toFixed(2);
-          effect.value1 = Math.max(0.00, Math.min(1.00, effect.value1));
+          effect.value1 = effect.value1.clamp(0, 1);
         }
         if (effect.value2 !== 0) {
           effect.value2 += Math.floor(Math.random() * randomValue - offset);
@@ -661,6 +671,9 @@ ItemManager.randomizeInitialStats = function(baseItem, newItem) {
     for (var i = 0; i < 8; ++i) {
       if (newItem.params[i] === 0) continue;
       newItem.params[i] += Math.floor(Math.random() * randomValue - offset);
+      if (!Yanfly.Param.ItemNegVar && baseItem.params[i] >= 0) {
+        newItem.params[i] = Math.max(newItem.params[i], 0);
+      }
     }
 };
 

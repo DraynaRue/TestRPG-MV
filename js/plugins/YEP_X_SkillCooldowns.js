@@ -79,7 +79,7 @@ Yanfly.SCD = Yanfly.SCD || {};
  * @param Time Based
  * @desc If a battle system is Tick-based, use time instead
  * of turns for cooldowns? NO - false   YES - true
- * @default true
+ * @default false
  *
  * @param Turn Time
  * @desc How many ticks must pass to equal 1 cooldown turn?

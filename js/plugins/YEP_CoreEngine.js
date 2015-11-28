@@ -11,7 +11,7 @@ Yanfly.Core = Yanfly.Core || {};
 
 //=============================================================================
 /*:
- * @plugindesc v1.07 Needed for the majority of Yanfly Engine Scripts. Also
+ * @plugindesc v1.08 Needed for the majority of Yanfly Engine Scripts. Also
  * contains bug fixes found inherently in RPG Maker.
  * @author Yanfly Engine Plugins
  *
@@ -444,6 +444,10 @@ Yanfly.Core = Yanfly.Core || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.08:
+ * - Fixed a bug within the MV Sorce with changing classes and maintaining
+ * levels, even though the feature to maintain the levels has been removed.
  *
  * Version 1.07:
  * - Fixed an issue with the gauges drawing outlines thicker than normal at odd
@@ -1014,6 +1018,15 @@ Game_Actor.prototype.paramBase = function(paramId) {
 			return i;
 		}
     return Yanfly.Core.Game_Actor_paramBase.call(this, paramId);
+};
+
+Game_Actor.prototype.changeClass = function(classId, keepExp) {
+    if (keepExp) {
+        this._exp[classId] = this._exp[this._classId];
+    }
+    this._classId = classId;
+    this.changeExp(this._exp[this._classId] || 0, false);
+    this.refresh();
 };
 
 //=============================================================================
