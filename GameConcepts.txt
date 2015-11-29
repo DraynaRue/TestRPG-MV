@@ -1,0 +1,27 @@
+----------
+Characters
+----------
+Name, Class, Element, Weapon, Sword Skills, Magic Skills, Special Skills, Focused Stat
+
+DraynaRue, Fairy, Air, Rapier, Pierce Skills, Element and Support Magic, [Nothing], Agility Focused
+
+Felicia, Elemental Warrior, Fire, Dual Axe, Slash Skills, Element Magic, [Nothing], Defence Focused
+
+Crowe, Swashbuckler, Darkness, Dual Blades, Slash Skills, Support Magic, [Nothing], Agility and Evasion Focused
+
+-----
+Lands
+-----
+Base Land, Areas
+	Name, Theme, Elements, Dungeons
+
+System Tower, 3
+	Floor 1, Forest and Beach, Normal/Air/Water/Ground, 2
+	Floor 2, Volcano, Fire/Ground, 3
+	Floor 3, Ice Plains, Ice/Water, 3
+	
+System Mainframe, 4
+	Forest Region, Forest and Beach, Normal/Air/Water/Ground, 2
+	Scorched Region, Volcano, Fire/Ground, 3
+	Blizzard Region, Ice Plains, Ice/Water, 3
+	Mainframe Core, Digital World, Digital/Virus, [Unknown]
