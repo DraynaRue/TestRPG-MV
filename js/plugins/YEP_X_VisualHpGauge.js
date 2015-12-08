@@ -11,7 +11,7 @@ Yanfly.VHG = Yanfly.VHG || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.02 (Requires YEP_BattleEngineCore.js) Reveal HP Gauges
+ * @plugindesc v1.03 (Requires YEP_BattleEngineCore.js) Reveal HP Gauges
  * when a battler is selected or takes damage in battle.
  * @author Yanfly Engine Plugins
  *
@@ -142,6 +142,9 @@ Yanfly.VHG = Yanfly.VHG || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.03:
+ * - Fixed a bug when Escape skill-effects are used on battlers.
  *
  * Version 1.02:
  * - Fixed a bug with gauge height not adjusting.
@@ -450,8 +453,8 @@ Window_VisualHPGauge.prototype.initialize = function() {
 Window_VisualHPGauge.prototype.setBattler = function(battler) {
     if (this._battler === battler) return;
     this._battler = battler;
-    this._currentHpValue = this._battler.hp;
-    this._displayedValue = this._battler.hp;
+    this._currentHpValue = this._battler ? this._battler.hp : 0;
+    this._displayedValue = this._battler ? this._battler.hp : 0;
 };
 
 Window_VisualHPGauge.prototype.update = function() {

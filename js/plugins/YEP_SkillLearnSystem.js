@@ -11,7 +11,7 @@ Yanfly.SLS = Yanfly.SLS || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.03 Allows actors to learn skills from the skill menu
+ * @plugindesc v1.04 Allows actors to learn skills from the skill menu
  * through crafting them via items or otherwise.
  * @author Yanfly Engine Plugins
  *
@@ -207,8 +207,13 @@ Yanfly.SLS = Yanfly.SLS || {};
  * Changelog
  * ============================================================================
  *
- * Version 1.03:
+ * Version 1.04:
+ * - Fixed a bug that would duplicate non-independent items.
+ * - Fixed a bug with class portraits not updating properly.
+ *
+ * Version 1.03a:
  * - Fixed a bug where JP values weren't updated upon learning.
+ * - Fixed a bug where the help description didn't update if a skill vanished.
  *
  * Version 1.02:
  * - Reversed the display for item requirements so it is now Held/Needed.
@@ -252,63 +257,63 @@ DataManager.isDatabaseLoaded = function() {
     DataManager.processSLSNotetagsI($dataItems);
     DataManager.processSLSNotetagsW($dataWeapons);
     DataManager.processSLSNotetagsA($dataArmors);
-		DataManager.processSLSNotetags1($dataClasses);
+    DataManager.processSLSNotetags1($dataClasses);
     DataManager.processSLSNotetags2($dataSkills);
-		return true;
+    return true;
 };
 
 DataManager.processSLSNotetagsI = function(group) {
-	if (Yanfly.ItemIdRef) return;
+  if (Yanfly.ItemIdRef) return;
   Yanfly.ItemIdRef = {};
   for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
+    var obj = group[n];
     if (obj.name.length <= 0) continue;
-		Yanfly.ItemIdRef[obj.name.toUpperCase()] = n;
-	}
+    Yanfly.ItemIdRef[obj.name.toUpperCase()] = n;
+  }
 };
 
 DataManager.processSLSNotetagsW = function(group) {
-	if (Yanfly.WeaponIdRef) return;
+  if (Yanfly.WeaponIdRef) return;
   Yanfly.WeaponIdRef = {};
   for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
+    var obj = group[n];
     if (obj.name.length <= 0) continue;
-		Yanfly.WeaponIdRef[obj.name.toUpperCase()] = n;
-	}
+    Yanfly.WeaponIdRef[obj.name.toUpperCase()] = n;
+  }
 };
 
 DataManager.processSLSNotetagsA = function(group) {
-	if (Yanfly.ArmorIdRef) return;
+  if (Yanfly.ArmorIdRef) return;
   Yanfly.ArmorIdRef = {};
   for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
+    var obj = group[n];
     if (obj.name.length <= 0) continue;
-		Yanfly.ArmorIdRef[obj.name.toUpperCase()] = n;
-	}
+    Yanfly.ArmorIdRef[obj.name.toUpperCase()] = n;
+  }
 };
 
 DataManager.processSLSNotetags1 = function(group) {
-	var note1 = /<(?:LEARN SKILL|learn skills):[ ]*(\d+(?:\s*,\s*\d+)*)>/i;
+  var note1 = /<(?:LEARN SKILL|learn skills):[ ]*(\d+(?:\s*,\s*\d+)*)>/i;
   var note2 =
     /<(?:LEARN SKILL|learn skills):[ ](\d+)[ ](?:THROUGH|to)[ ](\d+)>/i;
-	for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
-		var notedata = obj.note.split(/[\r\n]+/);
+  for (var n = 1; n < group.length; n++) {
+    var obj = group[n];
+    var notedata = obj.note.split(/[\r\n]+/);
 
     obj.learnSkills = [];
 
-		for (var i = 0; i < notedata.length; i++) {
-			var line = notedata[i];
-			if (line.match(note1)) {
+    for (var i = 0; i < notedata.length; i++) {
+      var line = notedata[i];
+      if (line.match(note1)) {
         var array = JSON.parse('[' + RegExp.$1.match(/\d+/g) + ']');
         obj.learnSkills = obj.learnSkills.concat(array);
       } else if (line.match(note2)) {
         var range = Yanfly.Util.getRange(parseInt(RegExp.$1),
-					parseInt(RegExp.$2));
+          parseInt(RegExp.$2));
         obj.learnSkills = obj.learnSkills.concat(range);
       }
-		}
-	}
+    }
+  }
 };
 
 DataManager.processSLSNotetags2 = function(group) {
@@ -329,9 +334,9 @@ DataManager.processSLSNotetags2 = function(group) {
   var note15 = /<\/(?:LEARN CUSTOM TEXT)>/i;
   var note16 = /<(?:LEARN SHOW EVAL)>/i;
   var note17 = /<\/(?:LEARN SHOW EVAL)>/i;
-	for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
-		var notedata = obj.note.split(/[\r\n]+/);
+  for (var n = 1; n < group.length; n++) {
+    var obj = group[n];
+    var notedata = obj.note.split(/[\r\n]+/);
 
     obj.learnCost = [];
     obj.learnCostGold = Yanfly.Param.SLSDefaultGold;
@@ -345,9 +350,9 @@ DataManager.processSLSNotetags2 = function(group) {
     obj.learnCustomText = '';
     var mode = 'none';
 
-		for (var i = 0; i < notedata.length; i++) {
-			var line = notedata[i];
-			if (line.match(note1)) {
+    for (var i = 0; i < notedata.length; i++) {
+      var line = notedata[i];
+      if (line.match(note1)) {
         mode = 'learn';
       } else if (line.match(note2)) {
         mode = 'none';
@@ -364,14 +369,14 @@ DataManager.processSLSNotetags2 = function(group) {
         obj.learnRequireSkill = obj.learnRequireSkill.concat(array);
       } else if (line.match(note7)) {
         var range = Yanfly.Util.getRange(parseInt(RegExp.$1),
-					parseInt(RegExp.$2));
+          parseInt(RegExp.$2));
         obj.learnRequireSkill = obj.learnRequireSkill.concat(range);
       } else if (line.match(note8)) {
         var array = JSON.parse('[' + RegExp.$1.match(/\d+/g) + ']');
         obj.learnRequireSwitch = obj.learnRequireSwitch.concat(array);
       } else if (line.match(note9)) {
         var range = Yanfly.Util.getRange(parseInt(RegExp.$1),
-					parseInt(RegExp.$2));
+          parseInt(RegExp.$2));
         obj.learnRequireSwitch = obj.learnRequireSwitch.concat(range);
       } else if (line.match(note10)) {
         mode = 'learnRequireEval';
@@ -398,8 +403,8 @@ DataManager.processSLSNotetags2 = function(group) {
       } else if (mode === 'learnShowEval') {
         obj.learnShowEval = obj.learnShowEval + line + '\n';
       }
-		}
-	}
+    }
+  }
 };
 
 DataManager.addLearnSkillCost = function(obj, line) {
@@ -479,7 +484,7 @@ Game_System.prototype.isEnableLearnSkill = function() {
 //=============================================================================
 
 Game_Actor.prototype.availableClasses = function() {
-		if (!Imported.YEP_ClassChangeCore) return 1;
+    if (!Imported.YEP_ClassChangeCore) return 1;
     return this.unlockedClasses().length;
 };
 
@@ -511,6 +516,13 @@ Game_Actor.prototype.canLearnSkill = function(skill, classId) {
     if (!this.sufficientJpLearnSkill(skill, classId)) return false;
     if (!$gameParty.sufficientItemLearnSkill(skill)) return false;
     return true;
+};
+
+Yanfly.SLS.Game_Actor_releaseUnequippableItems =
+    Game_Actor.prototype.releaseUnequippableItems;
+Game_Actor.prototype.releaseUnequippableItems = function(forcing) {
+    if (Yanfly.SLS.PreventReleaseItem) return;
+    Yanfly.SLS.Game_Actor_releaseUnequippableItems.call(this, forcing);
 };
 
 //=============================================================================
@@ -589,9 +601,9 @@ Yanfly.SLS.Game_Interpreter_pluginCommand =
 Game_Interpreter.prototype.pluginCommand = function(command, args) {
     Yanfly.SLS.Game_Interpreter_pluginCommand.call(this, command, args)
     if (command === 'ShowLearnSkill') $gameSystem._showLearnSkill = true;
-		if (command === 'HideLearnSkill') $gameSystem._showLearnSkill = false;
-		if (command === 'EnableLearnSkill') $gameSystem._enableLearnSkill = true;
-		if (command === 'DisableLearnSkill') $gameSystem._enableLearnSkill = false;
+    if (command === 'HideLearnSkill') $gameSystem._showLearnSkill = false;
+    if (command === 'EnableLearnSkill') $gameSystem._enableLearnSkill = true;
+    if (command === 'DisableLearnSkill') $gameSystem._enableLearnSkill = false;
     if (command === 'OpenLearnSkill') this.openLearnSkill(args);
 };
 
@@ -859,7 +871,7 @@ Window_SkillLearnClass.prototype.makeItemList = function() {
     } else {
       this._data = [];
     }
-		this._data.sort(function(a, b) { return a - b });
+    this._data.sort(function(a, b) { return a - b });
 };
 
 Window_SkillLearnClass.prototype.isEnabled = function(classId) {
@@ -876,11 +888,11 @@ Window_SkillLearnClass.prototype.drawClassLevel = function(item, wx, wy, ww) {
     var icon = '\\i[' + Yanfly.Icon.Jp + ']';
     var fmt = Yanfly.Param.JpMenuFormat;
     var text = fmt.format(value, Yanfly.Param.Jp, icon);
-		this.resetFontSettings();
-		this.changeTextColor(this.normalColor());
-		this.contents.fontSize = Yanfly.Param.CCCLvFontSize;
+    this.resetFontSettings();
+    this.changeTextColor(this.normalColor());
+    this.contents.fontSize = Yanfly.Param.CCCLvFontSize;
     wx += ww - this.textWidthEx(text);
-		this.drawTextEx(text, wx, wy);
+    this.drawTextEx(text, wx, wy);
 };
 
 Window_SkillLearnClass.prototype.selectLast = function() {
@@ -1147,10 +1159,6 @@ Window_SkillLearnCommand.prototype.addClassCommand = function(classId) {
     var actorClass = $dataClasses[classId];
     if (!actorClass) return;
     var name = actorClass.name;
-    if (Imported.YEP_ClassChangeCore) {
-      var icon = actorClass.iconIndex;
-      name = '\\i[' + icon + ']' + name;
-    }
     this.addCommand(name, 'class', true, classId);
 };
 
@@ -1164,22 +1172,25 @@ Window_SkillLearnCommand.prototype.update = function() {
       var classId = this.currentExt();
       this._skillLearnWindow.setClass(classId);
     }
-    if (this._statusWindow && this._currentClass !== this.currentExt()) {
+    if (this._statusWindow && this._currentClassIndex !== this.index()) {
+      this._currentClassIndex = this.index();
       var actor = JsonEx.makeDeepCopy(this._actor);
       if (!actor) return;
       var classId = this.currentExt();
       this._currentClass = this.currentExt();
       var hpRate = actor.hp / actor.mhp;
-  		var mpRate = actor.mp / Math.max(1, actor.mmp);
+      var mpRate = actor.mp / Math.max(1, actor.mmp);
+      Yanfly.SLS.PreventReleaseItem = true;
       if (Imported.YEP_ClassChangeCore) {
         actor.changeClass(classId, eval(Yanfly.Param.CCCMaintainLv));
       } else {
-        actor.changeClass(classId, change);
+        actor.changeClass(classId, false);
       }
       var hpAmount = Math.max(1, parseInt(actor.mhp * hpRate));
       actor.setHp(hpAmount);
-  		actor.setMp(parseInt(actor.mmp * mpRate));
+      actor.setMp(parseInt(actor.mmp * mpRate));
       this._statusWindow.setActor(actor);
+      Yanfly.SLS.PreventReleaseItem = false;
     }
 };
 
@@ -1197,7 +1208,11 @@ Window_Command.prototype.drawItemEx = function(index) {
     var align = this.itemTextAlign();
     this.resetTextColor();
     this.changePaintOpacity(this.isCommandEnabled(index));
-    this.drawTextEx(this.commandName(index), rect.x, rect.y);
+    var classId = this._list[index].ext;
+    this.drawIcon($dataClasses[classId].iconIndex, rect.x, rect.y);
+    rect.x += Window_Base._iconWidth + 4;
+    rect.width -= Window_Base._iconWidth + 4;
+    this.drawText(this.commandName(index), rect.x, rect.y, rect.width);
 };
 
 //=============================================================================
@@ -1334,9 +1349,9 @@ Scene_Skill.prototype.onClassOk = function() {
 };
 
 Scene_Skill.prototype.onClassCancel = function() {
-		this._classListWindow.deselect();
+    this._classListWindow.deselect();
     this._skillTypeWindow.activate();
-		this._helpWindow.setItem(null);
+    this._helpWindow.setItem(null);
 };
 
 Scene_Skill.prototype.onLearnOk = function() {
@@ -1363,6 +1378,7 @@ Scene_Skill.prototype.processLearnSkill = function(skill, classId) {
   if (Imported.YEP_JobPoints) this.actor().loseJp(skill.learnCostJp, classId);
   this.actor().refresh();
   this._skillLearnWindow.refresh();
+  this._skillLearnWindow.updateHelp();
   this._statusWindow.refresh();
   if (this._goldWindow) this._goldWindow.refresh();
   if (this._classListWindow) this._classListWindow.refresh();
@@ -1381,7 +1397,7 @@ Scene_Skill.prototype.processLearnCostEval = function(skill, classId) {
 };
 
 Scene_Skill.prototype.onLearnCancel = function() {
-		this._skillLearnWindow.deselect();
+    this._skillLearnWindow.deselect();
     this._skillLearnDataWindow.setSkill(null);
     if (this._classListWindow && this._actor.availableClasses() > 1) {
       this._skillLearnWindow.hide();
@@ -1390,7 +1406,7 @@ Scene_Skill.prototype.onLearnCancel = function() {
       this._classListWindow.selectLast();
     } else {
       this._skillTypeWindow.activate();
-  		this._helpWindow.setItem(null);
+      this._helpWindow.setItem(null);
     }
 };
 
@@ -1548,15 +1564,17 @@ Scene_LearnSkill.prototype.refreshStatus = function() {
     this._commandWindow._currentClass = this._commandWindow.currentExt();
     var hpRate = actor.hp / actor.mhp;
     var mpRate = actor.mp / Math.max(1, actor.mmp);
+    Yanfly.SLS.PreventReleaseItem = true;
     if (Imported.YEP_ClassChangeCore) {
       actor.changeClass(classId, eval(Yanfly.Param.CCCMaintainLv));
     } else {
-      actor.changeClass(classId, change);
+      actor.changeClass(classId, false);
     }
     var hpAmount = Math.max(1, parseInt(actor.mhp * hpRate));
     actor.setHp(hpAmount);
     actor.setMp(parseInt(actor.mmp * mpRate));
     this._statusWindow.setActor(actor);
+    Yanfly.SLS.PreventReleaseItem = false;
 };
 
 Scene_LearnSkill.prototype.processLearnSkill = function(skill, classId) {
@@ -1569,6 +1587,7 @@ Scene_LearnSkill.prototype.processLearnSkill = function(skill, classId) {
   if (Imported.YEP_JobPoints) this.actor().loseJp(skill.learnCostJp, classId);
   this.actor().refresh();
   this._skillLearnWindow.refresh();
+  this._skillLearnWindow.updateHelp();
   this.refreshStatus();
   if (this._goldWindow) this._goldWindow.refresh();
   if (this._classListWindow) this._classListWindow.refresh();
@@ -1587,7 +1606,7 @@ Scene_LearnSkill.prototype.processLearnCostEval = function(skill, classId) {
 };
 
 Scene_LearnSkill.prototype.onLearnCancel = function() {
-		if (Imported.YEP_ClassChangeCore) {
+    if (Imported.YEP_ClassChangeCore) {
       this._skillLearnWindow.deselect();
       this._skillLearnDataWindow.setSkill(null);
       this._commandWindow.activate();
@@ -1612,9 +1631,9 @@ Scene_LearnSkill.prototype.onLearnPageUp = function() {
 Yanfly.Util = Yanfly.Util || {};
 
 if (!Yanfly.Util.toGroup) {
-		Yanfly.Util.toGroup = function(inVal) {
-				return inVal;
-		}
+    Yanfly.Util.toGroup = function(inVal) {
+        return inVal;
+    }
 };
 
 Yanfly.Util.getRange = function(n, m) {

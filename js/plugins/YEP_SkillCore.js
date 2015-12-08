@@ -11,7 +11,7 @@ Yanfly.Skill = Yanfly.Skill || {};
 
 //=============================================================================
 /*:
- * @plugindesc v1.06 Skills are now given more functions and the ability to
+ * @plugindesc v1.06a Skills are now given more functions and the ability to
  * require different types of costs.
  * @author Yanfly Engine Plugins
  *
@@ -322,8 +322,9 @@ Yanfly.Skill = Yanfly.Skill || {};
  * Changelog
  * ============================================================================
  *
- * Version 1.06:
+ * Version 1.06a:
  * - Added <Hide in Battle> and <Hide in Field> notetags.
+ * - Added a failsafe to check for undefined skills.
  *
  * Version 1.05:
  * - Added <Hide if Learned Skill: x> notetags.
@@ -633,15 +634,19 @@ Yanfly.Skill.Game_BattlerBase_mSC =
     Game_BattlerBase.prototype.meetsSkillConditions;
 Game_BattlerBase.prototype.meetsSkillConditions = function(skill) {
     if (!Yanfly.Skill.Game_BattlerBase_mSC.call(this, skill)) return false;
+    if (!skill) return false;
     if (!this.noHiddenSkillConditionsMet(skill)) return false;
     return this.meetsSkillConditionsEval(skill);
 };
 
 Game_BattlerBase.prototype.noHiddenSkillConditionsMet = function(skill) {
+    if (!skill) return false;
     if (this.isEnemy()) return true;
-    for (var i = 0; i < skill.hideIfLearnedSkill.length; ++i) {
-      var skillId = skill.hideIfLearnedSkill[i];
-      if (this.isLearnedSkill(skillId)) return false;
+    if (skill.hideIfLearnedSkill) {
+      for (var i = 0; i < skill.hideIfLearnedSkill.length; ++i) {
+        var skillId = skill.hideIfLearnedSkill[i];
+        if (this.isLearnedSkill(skillId)) return false;
+      }
     }
     if (skill.hideInBattle && $gameParty.inBattle()) return false;
     if (skill.hideInField && !$gameParty.inBattle()) return false;

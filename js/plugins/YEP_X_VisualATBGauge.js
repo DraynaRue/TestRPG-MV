@@ -11,7 +11,7 @@ Yanfly.VATB = Yanfly.VATB || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.00 (Requires YEP_BattleSysATB.js) Provides a visible ATB
+ * @plugindesc v1.01 (Requires YEP_BattleSysATB.js) Provides a visible ATB
  * gauge for your enemies!
  * @author Yanfly Engine Plugins
  *
@@ -75,6 +75,9 @@ Yanfly.VATB = Yanfly.VATB || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.01:
+ * - Fixed a graphical issue to synchronize the opacity value with battlers!
  *
  * Version 1.00:
  * - Finished Plugin!
@@ -253,6 +256,11 @@ Window_EnemyVisualATB.prototype.updateOpacity = function() {
     } else {
       this.contentsOpacity -= 32;
     }
+    this.contentsOpacity = this.contentsOpacity.clamp(0, this.maxOpacity());
+};
+
+Window_EnemyVisualATB.prototype.maxOpacity = function() {
+    return this._battler.battler().opacity;
 };
 
 Window_EnemyVisualATB.prototype.isShowWindow = function() {

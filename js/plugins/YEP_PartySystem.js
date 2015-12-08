@@ -11,7 +11,7 @@ Yanfly.Party = Yanfly.Party || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.03 Replaces the default 'Formation' command with a new
+ * @plugindesc v1.06 Replaces the default 'Formation' command with a new
  * menu for players to easily change party formations.
  * @author Yanfly Engine Plugins
  *
@@ -36,6 +36,11 @@ Yanfly.Party = Yanfly.Party || {};
  * @param Battle Cooldown
  * @desc How many turns must the player wait after changing party?
  * @default 1
+ *
+ * @param Maximum Followers
+ * @desc Maximum number of followers on the map.
+ * Default: 4
+ * @default 4
  *
  * @param ---Menu---
  * @default
@@ -205,6 +210,19 @@ Yanfly.Party = Yanfly.Party || {};
  * Changelog
  * ============================================================================
  *
+ * Version 1.06:
+ * - Fixed a bug with certain actors not drawing properly.
+ * 
+ * Version 1.05:
+ * - Added 'Maximum Followers' parameter. This number should be the maximum
+ * number you have in your game if you ever increase the maximum party size
+ * midway through your game.
+ *
+ * Version 1.04:
+ * - Fixed a visual bug with mid-battle formation changing against backgrounds
+ * without battlebacks.
+ * - Formation changes during mid-battle will resume bgm/bgs currently played.
+ *
  * Version 1.03:
  * - Fixed a bug that would cause AutoBattlers to stall if they got added into
  * the party mid-battle.
@@ -236,6 +254,7 @@ Yanfly.Param.MaxBattleMembers = Number(Yanfly.Parameters['Max Battle Members']);
 Yanfly.Param.PartyShowBattle = String(Yanfly.Parameters['Show Battle Command']);
 Yanfly.Param.PartyEnBattle = String(Yanfly.Parameters['Enable Battle Command']);
 Yanfly.Param.PartyCooldown = Number(Yanfly.Parameters['Battle Cooldown']);
+Yanfly.Param.PartyMaxFollower = Number(Yanfly.Parameters['Maximum Followers']);
 Yanfly.Param.PartyHelpWindow = String(Yanfly.Parameters['Help Window']);
 Yanfly.Param.PartyLockFirst = String(Yanfly.Parameters['Lock First Actor']);
 Yanfly.Param.PartyTextAlign = String(Yanfly.Parameters['Text Alignment']);
@@ -482,6 +501,30 @@ Game_Party.prototype.reconstructActions = function(actorId) {
     }
 };
 
+Yanfly.Party.Game_Party_swapOrder = Game_Party.prototype.swapOrder;
+Game_Party.prototype.swapOrder = function(index1, index2) {
+    this.swapOrderBattleMembers(index1, index2);
+    Yanfly.Party.Game_Party_swapOrder.call(this, index1, index2);
+    this.rearrangeActors();
+    $gamePlayer.refresh();
+};
+
+Game_Party.prototype.swapOrderBattleMembers = function(index1, index2) {
+    var bm = this._battleMembers;
+    if (bm.length > index1 && bm.length > index2) {
+      var actorId1 = this._battleMembers[index1];
+      var actorId2 = this._battleMembers[index2];
+    } else if (bm.length > index1) {
+      var actorId1 = this._battleMembers[index1];
+      var actorId2 = this._actors[index2];
+    } else if (bm.length > index2) {
+      var actorId1 = this._actors[index1];
+      var actorId2 = this._battleMembers[index2];
+    }
+    if (bm.length > index1) this._battleMembers[index1] = actorId2;
+    if (bm.length > index2) this._battleMembers[index2] = actorId1;
+};
+
 //=============================================================================
 // Game_Troop
 //=============================================================================
@@ -500,7 +543,8 @@ Game_Followers.prototype.initialize = function() {
     this._visible = $dataSystem.optFollowers;
     this._gathering = false;
     this._data = [];
-    for (var i = 1; i < $dataActors.length; i++) {
+    var max = Yanfly.Param.PartyMaxFollower || $gameParty.maxBattleMembers();
+    for (var i = 1; i < max; i++) {
         this._data.push(new Game_Follower(i));
     }
 };
@@ -880,20 +924,26 @@ Window_PartyList.prototype.drawAllItems = function() {
         var index = topIndex + i;
         if (index < this.maxItems()) {
             this.drawItem(index);
+            this.clearItem(index + 1);
         }
     }
 };
 
 Window_PartyList.prototype.drawItem = function(index) {
+    var actor = $gameActors.actor(this._data[index]);
+    if (actor) {
+      var bitmap = ImageManager.loadCharacter(actor.characterName());
+      if (bitmap.width <= 0) {
+        return setTimeout(this.drawItem.bind(this, index), 5);
+      }
+    }
     this.clearItem(index);
     var rect = this.itemRect(index);
     if (this._data[index] === 0) {
       this.drawRemove(rect);
       return;
     }
-    var actor = $gameActors.actor(this._data[index]);
     this.drawActor(actor, rect);
-    this.clearItem(index + 1);
 };
 
 Window_PartyList.prototype.drawRemove = function(rect) {
@@ -958,7 +1008,7 @@ Window_PartyList.prototype.itemSection = function() {
 
 Window_PartyList.prototype.drawCurrentAndMax = function(current, max, x, y,
                                                    width, color1, color2) {
-		var labelWidth = this.textWidth('HP');
+    var labelWidth = this.textWidth('HP');
     var valueWidth = this.textWidth(Yanfly.Util.toGroup(max));
     var slashWidth = this.textWidth('/');
     var x1 = x + width - valueWidth;
@@ -1239,6 +1289,22 @@ BattleManager.startBattle = function() {
     this._bypassMoveToStartLocation = false;
 };
 
+Yanfly.Party.BattleManager_playBattleBgm = BattleManager.playBattleBgm;
+BattleManager.playBattleBgm = function() {
+    var restartBgm = true;
+    if (Yanfly.Party.SavedBattleBgm) {
+      AudioManager.playBgm(Yanfly.Party.SavedBattleBgm);
+      Yanfly.Party.SavedBattleBgm = undefined;
+      restartBgm = false;
+    }
+    if (Yanfly.Party.SavedBattleBgs) {
+      AudioManager.playBgs(Yanfly.Party.SavedBattleBgs);
+      Yanfly.Party.SavedBattleBgm = undefined;
+      restartBgm = false;
+    }
+    if (restartBgm) Yanfly.Party.BattleManager_playBattleBgm.call(this);
+};
+
 //=============================================================================
 // Game_Unit
 //=============================================================================
@@ -1298,6 +1364,21 @@ Sprite_Actor.prototype.moveToStartPosition = function() {
 };
 
 //=============================================================================
+// Spriteset_Battle
+//=============================================================================
+
+Yanfly.Party.Spriteset_Battle_createBackground =
+    Spriteset_Battle.prototype.createBackground;
+Spriteset_Battle.prototype.createBackground = function() {
+    Yanfly.Party.Spriteset_Battle_createBackground.call(this);
+    if (Yanfly.Party.SavedBackgroundBitmap) {
+      var spr = this._backgroundSprite;
+      spr.bitmap = Yanfly.Party.SavedBackgroundBitmap;
+      Yanfly.Party.SavedBackgroundBitmap = undefined;
+    }
+};
+
+//=============================================================================
 // Scene_Map
 //=============================================================================
 
@@ -1332,12 +1413,15 @@ Scene_Battle.prototype.partyCommandFormation = function() {
     this.prepareBackground();
     BattleManager._savedActor = BattleManager.actor();
     $gameSystem.setBattleFormationCooldown();
+    Yanfly.Party.SavedBattleBgm = AudioManager.saveBgm();
+    Yanfly.Party.SavedBattleBgs = AudioManager.saveBgs();
     SceneManager.push(Scene_Party);
     BattleManager._phase = 'input';
     $gameTemp._partyBattle = true;
 };
 
 Scene_Battle.prototype.prepareBackground = function() {
+    Yanfly.Party.SavedBackgroundBitmap = SceneManager._backgroundBitmap;
     this._prevWindowLayer = this._windowLayer.y;
     this._windowLayer.y = Graphics.boxHeight * 495;
     SceneManager.snapForBackground();
@@ -1542,9 +1626,9 @@ Scene_Party.prototype.switchActors = function() {
 Yanfly.Util = Yanfly.Util || {};
 
 if (!Yanfly.Util.toGroup) {
-		Yanfly.Util.toGroup = function(inVal) {
-				return inVal;
-		}
+    Yanfly.Util.toGroup = function(inVal) {
+        return inVal;
+    }
 };
 
 //=============================================================================

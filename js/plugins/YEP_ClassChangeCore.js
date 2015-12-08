@@ -1,7 +1,6 @@
 //=============================================================================
 // Yanfly Engine Plugins - Class Change Core
 // YEP_ClassChangeCore.js
-// Version: 1.01
 //=============================================================================
 
 var Imported = Imported || {};
@@ -12,7 +11,7 @@ Yanfly.CCC = Yanfly.CCC || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.01 This plugin creates a system where your player
+ * @plugindesc v1.03 This plugin creates a system where your player
  * can change classes through the main menu.
  * @author Yanfly Engine Plugins
  *
@@ -203,6 +202,15 @@ Yanfly.CCC = Yanfly.CCC || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.03:
+ * - Fixed a bug that would duplicate non-independent items.
+ * - Fixed a bug that prevented visual appearances from updating until entering
+ * a new map.
+ *
+ * Version 1.02a:
+ * - Added a failsafe for users to prevent them from attempting to learn skills
+ * from classes that don't exist.
  *
  * Version 1.01:
  * - Fixed an asynch issue with changing class images when moving to another
@@ -464,7 +472,7 @@ Game_Actor.prototype.changeClass = function(classId, keepExp) {
       keepExp = false;
     }
     Yanfly.CCC.Game_Actor_changeClass.call(this, classId, keepExp);
-    this.updateLearnedSkills(classId);
+    //this.updateLearnedSkills(classId);
     this.unlockClass(classId);
     $gamePlayer.refresh();
 };
@@ -477,6 +485,7 @@ Game_Actor.prototype.updateUnlockedClassSkills = function() {
 };
 
 Game_Actor.prototype.updateLearnedSkills = function(classId) {
+    if (!$dataClasses[classId]) return;
     $dataClasses[classId].learnings.forEach(function(learning) {
         if (this.classLevel(classId) >= learning.level) {
           this.learnSkill(learning.skillId);
@@ -564,6 +573,13 @@ Game_Actor.prototype.classUnlockLevelRequirementsMet = function(item) {
       if (this.classLevel(classId) < level) return false;
     }
     return true;
+};
+
+Yanfly.CCC.Game_Actor_releaseUnequippableItems =
+    Game_Actor.prototype.releaseUnequippableItems;
+Game_Actor.prototype.releaseUnequippableItems = function(forcing) {
+    if (Yanfly.CCC.PreventReleaseItem) return;
+    Yanfly.CCC.Game_Actor_releaseUnequippableItems.call(this, forcing);
 };
 
 //=============================================================================
@@ -665,9 +681,11 @@ Game_Interpreter.prototype.removeClassAll = function(args) {
 Yanfly.CCC.Window_SkillStatus_refresh =
     Window_SkillStatus.prototype.refresh;
 Window_SkillStatus.prototype.refresh = function() {
-    var bitmap = ImageManager.loadFace(this._actor.faceName());
-    if (bitmap.width <= 0) {
-      return setTimeout(this.refresh.bind(this), 5);
+    if (this._actor) {
+      var bitmap = ImageManager.loadFace(this._actor.faceName());
+      if (bitmap.width <= 0) {
+        return setTimeout(this.refresh.bind(this), 5);
+      }
     }
     Yanfly.CCC.Window_SkillStatus_refresh.call(this);
 };
@@ -786,9 +804,16 @@ Window_ClassList.prototype.item = function() {
 
 Window_ClassList.prototype.makeItemList = function() {
     if (this._actor) {
-        this._data = this._actor.unlockedClasses().slice();
+        var data = this._actor.unlockedClasses().slice();
     } else {
-        this._data = [];
+        var data = [];
+    }
+    this._data = [];
+    for (var i = 0; i < data.length; ++i) {
+      var classId = data[i];
+      if ($dataClasses[classId] && !this._data.contains(classId)) {
+        this._data.push(classId);
+      }
     }
     this._data.sort(function(a, b) { return a - b });
 };
@@ -847,7 +872,9 @@ Window_ClassList.prototype.updateCompare = function() {
     if (this._actor && this.item() && this._statusWindow) {
       var actor = JsonEx.makeDeepCopy(this._actor);
       if (this.isEnabled(this.item())) {
+        Yanfly.CCC.PreventReleaseItem = true;
         actor.changeClass(this.item(), false);
+        Yanfly.CCC.PreventReleaseItem = undefined;
       }
       this._statusWindow.setTempActor(actor);
     }

@@ -72,7 +72,7 @@ Yanfly.VA = Yanfly.VA || {};
  * @param Show Skills Learned
  * @desc Display skills learned at level up?
  * NO - false     YES - true
- * @default true
+ * @default false
  *
  * @param Gained EXP Text
  * @desc The text to label how much EXP was gained in battle.

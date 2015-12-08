@@ -11,7 +11,7 @@ Yanfly.APS = Yanfly.APS || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.05 This plugin allows for some states to function as
+ * @plugindesc v1.05a This plugin allows for some states to function as
  * passives for actors, enemies, skills, and equips.
  * @author Yanfly Engine Plugins
  *
@@ -94,13 +94,16 @@ Yanfly.APS = Yanfly.APS || {};
  *   appear on the battler.
  *   * Note: All non-custom passive conditions must be met before this one can
  *   be fulfilled and allow the custom condition to appear.
+ *   * Note: If you decide to use a condition that requires the actor to have a
+ *   particular state, it cannot be a passive state to prevent infinite loops.
  *
  * ============================================================================
  * Changelog
  * ============================================================================
  *
- * Version 1.05:
+ * Version 1.05a:
  * - Added Lunatic Mode - <Custom Passive Condition> notetag for states.
+ * - Fixed a bug that would cause infinite loops.
  *
  * Version 1.04:
  * - Added a lot of passive condition notetags for states.
@@ -305,7 +308,7 @@ Game_BattlerBase.prototype.getPassiveStateData = function(obj) {
 };
 
 Game_BattlerBase.prototype.meetPassiveStateCondition = function(stateId) {
-    if (this._checkingPassiveStateCondition === stateId) return false;
+    if (this._checkingPassiveStateCondition) return false;
     var state = $dataStates[stateId];
     if (!state) return false;
     if (state.passiveCondition !== '') {

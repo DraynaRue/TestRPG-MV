@@ -11,7 +11,7 @@ Yanfly.BEC = Yanfly.BEC || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.20 Have more control over the flow of the battle system
+ * @plugindesc v1.22 Have more control over the flow of the battle system
  * with this plugin and alter various aspects to your liking.
  * @author Yanfly Engine Plugins
  *
@@ -606,6 +606,16 @@ Yanfly.BEC = Yanfly.BEC || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.22:
+ * - Fixed a bug within MV that caused Forced Actions at Turn End to prompt and
+ * trigger all turn-end related activities (such as regeneration and state turn
+ * updating).
+ * - Made a mechanic change so that Action Start and Action End state turns do
+ * not update their turns through forced actions.
+ *
+ * Version 1.21:
+ * - Fixed a bug where states Action End weren't going down properly with DTB.
  *
  * Version 1.20:
  * - Fixed a bug where revived actors using instant cast aren't properly set to
@@ -1305,6 +1315,13 @@ BattleManager.checkBattleEnd = function() {
     return Yanfly.BEC.BattleManager_checkBattleEnd.call(this);
 };
 
+Yanfly.BEC.BattleManager_processTurn = BattleManager.processTurn;
+BattleManager.processTurn = function() {
+    this._processTurn = true;
+    Yanfly.BEC.BattleManager_processTurn.call(this);
+    this._processTurn = false;
+};
+
 Yanfly.BEC.BattleManager_processVictory = BattleManager.processVictory;
 BattleManager.processVictory = function() {
     this._logWindow.clear();
@@ -1333,6 +1350,7 @@ BattleManager.processEscape = function() {
 };
 
 BattleManager.startTurn = function() {
+    this._enteredEndPhase = false;
     this._phase = 'turn';
     this.clearActor();
     $gameTroop.increaseTurn();
@@ -1348,6 +1366,13 @@ BattleManager.startTurn = function() {
 Yanfly.BEC.BattleManager_endTurn = BattleManager.endTurn;
 BattleManager.endTurn = function() {
     if (this._spriteset.isPopupPlaying()) return;
+    if (this.isTurnBased() && this._enteredEndPhase) {
+      this._phase = 'turnEnd';
+      this._preemptive = false;
+      this._surprise = false;
+      return;
+    }
+    this._enteredEndPhase = true;
     Yanfly.BEC.BattleManager_endTurn.call(this);
 };
 
@@ -2192,14 +2217,14 @@ Sprite_Battler.prototype.setZ = function() {
 
 Sprite_Battler.prototype.setupDamagePopup = function() {
     if (this._battler.isDamagePopupRequested()) {
-        if (this._battler.isSpriteVisible()) {
-            var sprite = new Sprite_Damage();
-            sprite.x = this.x + this.damageOffsetX();
-            sprite.y = this.y + this.damageOffsetY();
-            sprite.setup(this._battler);
-            this.pushDamageSprite(sprite);
-            BattleManager._spriteset.addChild(sprite);
-        }
+      if (this._battler.isSpriteVisible()) {
+        var sprite = new Sprite_Damage();
+        sprite.x = this.x + this.damageOffsetX();
+        sprite.y = this.y + this.damageOffsetY();
+        sprite.setup(this._battler);
+        this.pushDamageSprite(sprite);
+        BattleManager._spriteset.addChild(sprite);
+      }
     } else {
       this._battler.clearDamagePopup();
       this._battler.clearResult();
@@ -2705,11 +2730,17 @@ Game_BattlerBase.prototype.updateStateTicks = function() {
     }
 };
 
+Game_BattlerBase.prototype.isBypassUpdateTurns = function() {
+    if ($gameTroop.isEventRunning()) return true;
+    return false;
+};
+
 Game_BattlerBase.prototype.updateStateTurns = function() {
     this.updateStateTurnEnd();
 };
 
 Game_BattlerBase.prototype.updateStateTurnTiming = function(timing) {
+    if (this.isBypassUpdateTurns()) return;
     var statesRemoved = [];
     for (var i = 0; i < this._states.length; ++i) {
       var stateId = this._states[i];
@@ -3223,14 +3254,7 @@ Yanfly.BEC.Game_Battler_onAllActionsEnd =
     Game_Battler.prototype.onAllActionsEnd;
 Game_Battler.prototype.onAllActionsEnd = function() {
     Yanfly.BEC.Game_Battler_onAllActionsEnd.call(this);
-    if (BattleManager.timeBasedStates()) {
-      this.updateStateActionEnd();
-    } else if (Imported.YEP_InstantCast) {
-      if (this.currentAction() && this.currentAction().item()) {
-        var item = this.currentAction().item();
-        if (this.isInstantCast(item)) this.updateStateActionEnd();
-      }
-    }
+    if (!BattleManager._processTurn) this.updateStateActionEnd();
 };
 
 Game_Battler.prototype.updateTick = function() {

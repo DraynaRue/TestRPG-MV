@@ -11,7 +11,7 @@ Yanfly.CoreAI = Yanfly.CoreAI || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.01 This plugin allows you to structure battle A.I.
+ * @plugindesc v1.02 This plugin allows you to structure battle A.I.
  * patterns with more control.
  * @author Yanfly Engine Plugins
  *
@@ -371,6 +371,9 @@ Yanfly.CoreAI = Yanfly.CoreAI || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.02:
+ * - Fixed a bug that targeted the highest parameter enemy instead of lowest.
  *
  * Version 1.01:
  * - Added 'MaxTP' and 'TP' to targets.
@@ -815,7 +818,7 @@ AIManager.setProperTarget = function(group) {
       if (param === 12) return this.setLowestLevelTarget(group);
       if (param === 13) return this.setLowestMaxTpTarget(group);
       if (param > 14) return action.setTarget(randomTarget.index());
-      this.setHighestParamTarget(group, param);
+      this.setLowestParamTarget(group, param);
     } else {
       this.setRandomTarget(group);
     }

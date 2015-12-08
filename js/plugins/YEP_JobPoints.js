@@ -11,7 +11,7 @@ Yanfly.JP = Yanfly.JP || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.01 This plugin by itself doesn't do much, but it enables
+ * @plugindesc v1.03 This plugin by itself doesn't do much, but it enables
  * actors to acquire JP (job points) used for other plugins.
  * @author Yanfly Engine Plugins
  *
@@ -44,6 +44,11 @@ Yanfly.JP = Yanfly.JP || {};
  * @param JP Per Enemy
  * @desc This is the amount of JP given per defeated enemy.
  * @default 50 + Math.randomInt(10)
+ *
+ * @param Show Results
+ * @desc Upon winning, show how much JP is earned for default?
+ * NO - false     YES - true
+ * @default true
  *
  * @param JP Gained in Battle
  * @desc Adjusts how the gained JP text is shown after battle.
@@ -181,6 +186,13 @@ Yanfly.JP = Yanfly.JP || {};
  * Changelog
  * ============================================================================
  *
+ * Version 1.03:
+ * - Added 'Show Results' parameter to show/hide JP earned after battle for
+ * those who aren't using the Victory Aftermath plugin.
+ *
+ * Version 1.02:
+ * - Fixed a bug that would gain JP for changing classes of a higher level.
+ *
  * Version 1.01:
  * - Added failsafes to prevent JP from turning into NaN.
  * 
@@ -202,6 +214,7 @@ Yanfly.Icon.Jp = Number(Yanfly.Parameters['JP Icon']);
 Yanfly.Param.JpMax = String(Yanfly.Parameters['Max JP']);
 Yanfly.Param.JpPerAction = String(Yanfly.Parameters['JP Per Action']);
 Yanfly.Param.JpPerEnemy = String(Yanfly.Parameters['JP Per Enemy']);
+Yanfly.Param.JpShowResults = eval(String(Yanfly.Parameters['Show Results']));
 Yanfly.Param.JpTextFormat = String(Yanfly.Parameters['JP Gained in Battle']);
 Yanfly.Param.JpShowMenu = String(Yanfly.Parameters['Show In Menu']);
 Yanfly.Param.JpMenuFormat = String(Yanfly.Parameters['Menu Format']);
@@ -334,6 +347,7 @@ BattleManager.displayRewards = function() {
 };
 
 BattleManager.displayJpGain = function() {
+    if (!Yanfly.Param.JpShowResults) return;
     var jp = $gameTroop.jpTotal();
     $gameMessage.newPage();
     $gameParty.members().forEach(function(actor) {
@@ -438,9 +452,17 @@ Game_Actor.prototype.battleJp = function() {
 		return this._battleJp;
 };
 
+Yanfly.JP.Game_Actor_changeClass = Game_Actor.prototype.changeClass;
+Game_Actor.prototype.changeClass = function(classId, keepExp) {
+    this._preventJpLevelUpGain = true;
+    Yanfly.JP.Game_Actor_changeClass.call(this, classId, keepExp);
+    this._preventJpLevelUpGain = false;
+};
+
 Yanfly.JP.Game_Actor_levelUp = Game_Actor.prototype.levelUp;
 Game_Actor.prototype.levelUp = function() {
     Yanfly.JP.Game_Actor_levelUp.call(this);
+    if (this._preventJpLevelUpGain) return;
     var value = eval(Yanfly.Param.JpPerLevel)
 		this.gainJp(value, this.currentClass().id);
 };

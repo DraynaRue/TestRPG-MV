@@ -15,5 +15,5 @@ null,
 {"id":13,"expanded":true,"name":"MagmaCaveSouthBF2","order":13,"parentId":12,"scrollX":1390.2857142857142,"scrollY":865.7142857142857},
 {"id":14,"expanded":true,"name":"ScorchCity","order":16,"parentId":11,"scrollX":811,"scrollY":2066},
 {"id":15,"expanded":true,"name":"MagmaCaveEastBF2","order":14,"parentId":12,"scrollX":1404,"scrollY":814.2857142857142},
-{"id":16,"expanded":false,"name":"MagmaCaveEastPit","order":15,"parentId":15,"scrollX":1404,"scrollY":814.2857142857142}
+{"id":16,"expanded":false,"name":"MagmaCaveEastPit","order":15,"parentId":15,"scrollX":811,"scrollY":485}
 ]

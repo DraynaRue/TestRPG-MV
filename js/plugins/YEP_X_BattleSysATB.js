@@ -11,7 +11,7 @@ Yanfly.ATB = Yanfly.ATB || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.10 (Requires YEP_BattleEngineCore.js) Add ATB (Active
+ * @plugindesc v1.12 (Requires YEP_BattleEngineCore.js) Add ATB (Active
  * Turn Battle) into your game using this plugin!
  * @author Yanfly Engine Plugins
  *
@@ -439,6 +439,13 @@ Yanfly.ATB = Yanfly.ATB || {};
  * Changelog
  * ============================================================================
  *
+ * Version 1.12:
+ * - Added speed rebalance formulas for tick-based systems (innate).
+ *
+ * Version 1.11:
+ * - Fixed a bug that would still allow battlers to perform actions even if the
+ * actions got sealed midway through charging the action.
+ *
  * Version 1.10:
  * - Fixed a bug that would cause AutoBattlers to stall if they got added into
  * the party mid-battle.
@@ -538,7 +545,7 @@ Yanfly.Param.ATBColorChar2 = Number(Yanfly.Parameters['Charge Gauge Color 2']);
 Yanfly.ATB.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
     if (!Yanfly.ATB.DataManager_isDatabaseLoaded.call(this)) return false;
-		DataManager.processATBNotetags1($dataSkills);
+    DataManager.processATBNotetags1($dataSkills);
     DataManager.processATBNotetags1($dataItems);
     DataManager.processATBNotetags2($dataActors);
     DataManager.processATBNotetags2($dataClasses);
@@ -546,11 +553,11 @@ DataManager.isDatabaseLoaded = function() {
     DataManager.processATBNotetags2($dataWeapons);
     DataManager.processATBNotetags2($dataArmors);
     DataManager.processATBNotetags2($dataStates);
-		return true;
+    return true;
 };
 
 DataManager.processATBNotetags1 = function(group) {
-	var noteA1 = /<(?:ATB GAUGE):[ ](\d+)>/i;
+  var noteA1 = /<(?:ATB GAUGE):[ ](\d+)>/i;
   var noteA2 = /<(?:ATB GAUGE):[ ]([\+\-]\d+)>/i;
   var noteA3 = /<(?:ATB GAUGE):[ ](\d+)([%％])>/i;
   var noteA4 = /<(?:ATB GAUGE):[ ]([\+\-]\d+)([%％])>/i;
@@ -567,9 +574,9 @@ DataManager.processATBNotetags1 = function(group) {
   var noteI1 = /<(?:ATB INTERRUPT)>/i;
   var noteI2 = /<(?:ATB INTERRUPT):[ ](\d+)([%％])>/i;
   var noteI3 = /<(?:CANNOT ATB INTERRUPT)>/i;
-	for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
-		var notedata = obj.note.split(/[\r\n]+/);
+  for (var n = 1; n < group.length; n++) {
+    var obj = group[n];
+    var notedata = obj.note.split(/[\r\n]+/);
 
     obj.setATBGaugeFlat = undefined;
     obj.addATBGaugeFlat = 0;
@@ -593,70 +600,70 @@ DataManager.processATBNotetags1 = function(group) {
     obj.atbInterruptEval = '';
     obj.atbHelp = undefined;
 
-		for (var i = 0; i < notedata.length; i++) {
-			var line = notedata[i];
-			if (line.match(noteA1)) {
-				obj.setATBGaugeFlat = parseInt(RegExp.$1);
-			} else if (line.match(noteA2)) {
-				obj.addATBGaugeFlat = parseInt(RegExp.$1);
-			} else if (line.match(noteA3)) {
-				obj.setATBGaugeRate = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(noteA4)) {
-				obj.addATBGaugeRate = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(noteB1)) {
-				obj.setATBSpeedFlat = parseInt(RegExp.$1);
-			} else if (line.match(noteB2)) {
-				obj.addATBSpeedFlat = parseInt(RegExp.$1);
-			} else if (line.match(noteB3)) {
-				obj.setATBSpeedRate = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(noteB4)) {
-				obj.addATBSpeedRate = parseFloat(RegExp.$1 * 0.01);
+    for (var i = 0; i < notedata.length; i++) {
+      var line = notedata[i];
+      if (line.match(noteA1)) {
+        obj.setATBGaugeFlat = parseInt(RegExp.$1);
+      } else if (line.match(noteA2)) {
+        obj.addATBGaugeFlat = parseInt(RegExp.$1);
+      } else if (line.match(noteA3)) {
+        obj.setATBGaugeRate = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(noteA4)) {
+        obj.addATBGaugeRate = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(noteB1)) {
+        obj.setATBSpeedFlat = parseInt(RegExp.$1);
+      } else if (line.match(noteB2)) {
+        obj.addATBSpeedFlat = parseInt(RegExp.$1);
+      } else if (line.match(noteB3)) {
+        obj.setATBSpeedRate = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(noteB4)) {
+        obj.addATBSpeedRate = parseFloat(RegExp.$1 * 0.01);
       } else if (line.match(noteC1)) {
-				obj.setATBChargeFlat = parseInt(RegExp.$1);
-			} else if (line.match(noteC2)) {
-				obj.addATBChargeFlat = parseInt(RegExp.$1);
-			} else if (line.match(noteC3)) {
-				obj.setATBChargeRate = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(noteC4)) {
-				obj.addATBChargeRate = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(noteS1)) {
-				obj.afterATBFlat = parseInt(RegExp.$1);
-			} else if (line.match(noteS2)) {
-				obj.afterATBRate = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(noteI1)) {
-				obj.atbInterruptRate = 1;
-			} else if (line.match(noteI2)) {
-				obj.atbInterruptRate = parseFloat(RegExp.$1 * 0.01);
+        obj.setATBChargeFlat = parseInt(RegExp.$1);
+      } else if (line.match(noteC2)) {
+        obj.addATBChargeFlat = parseInt(RegExp.$1);
+      } else if (line.match(noteC3)) {
+        obj.setATBChargeRate = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(noteC4)) {
+        obj.addATBChargeRate = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(noteS1)) {
+        obj.afterATBFlat = parseInt(RegExp.$1);
+      } else if (line.match(noteS2)) {
+        obj.afterATBRate = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(noteI1)) {
+        obj.atbInterruptRate = 1;
+      } else if (line.match(noteI2)) {
+        obj.atbInterruptRate = parseFloat(RegExp.$1 * 0.01);
       } else if (line.match(noteI3)) {
-				obj.cannotAtbInterrupt = true;
-			} else if (line.match(/<(?:TARGET ATB EVAL)>/i)) {
-				evalMode = 'atb eval';
-			} else if (line.match(/<\/(?:TARGET ATB EVAL)>/i)) {
-				evalMode = 'none';
+        obj.cannotAtbInterrupt = true;
+      } else if (line.match(/<(?:TARGET ATB EVAL)>/i)) {
+        evalMode = 'atb eval';
+      } else if (line.match(/<\/(?:TARGET ATB EVAL)>/i)) {
+        evalMode = 'none';
       } else if (line.match(/<(?:AFTER ATB EVAL)>/i)) {
-				evalMode = 'after atb eval';
-			} else if (line.match(/<\/(?:AFTER ATB EVAL)>/i)) {
-				evalMode = 'none';
+        evalMode = 'after atb eval';
+      } else if (line.match(/<\/(?:AFTER ATB EVAL)>/i)) {
+        evalMode = 'none';
       } else if (line.match(/<(?:ATB INTERRUPT EVAL)>/i)) {
-				evalMode = 'atb interrupt eval';
-			} else if (line.match(/<\/(?:ATB INTERRUPT EVAL)>/i)) {
-				evalMode = 'none';
+        evalMode = 'atb interrupt eval';
+      } else if (line.match(/<\/(?:ATB INTERRUPT EVAL)>/i)) {
+        evalMode = 'none';
       } else if (line.match(/<(?:ATB HELP)>/i)) {
         evalMode = 'atb help';
         obj.atbHelp = '';
       } else if (line.match(/<\/(?:ATB HELP)>/i)) {
         evalMode = 'none';
-			} else if (evalMode === 'atb eval') {
+      } else if (evalMode === 'atb help') {
+        obj.atbHelp = obj.atbHelp + line + '\n';
+      } else if (evalMode === 'atb eval') {
         obj.atbEval = obj.atbEval + line + '\n';
       } else if (evalMode === 'after atb eval') {
         obj.atbAfterEval = obj.atbAfterEval + line + '\n';
       } else if (evalMode === 'atb interrupt eval') {
         obj.atbInterruptEval = obj.atbInterruptEval + line + '\n';
-      } else if (evalMode === 'atb help') {
-        obj.atbHelp = obj.atbHelp + line + '\n';
       }
-		}
-	}
+    }
+  }
 };
 
 DataManager.processATBNotetags2 = function(group) {
@@ -665,27 +672,36 @@ DataManager.processATBNotetags2 = function(group) {
   var noteB1 = /<(?:ATB TURN):[ ]([\+\-]\d+)>/i;
   var noteB2 = /<(?:ATB TURN):[ ]([\+\-]\d+)([%％])>/i;
   for (var n = 1; n < group.length; n++) {
-		var obj = group[n];
-		var notedata = obj.note.split(/[\r\n]+/);
+    var obj = group[n];
+    var notedata = obj.note.split(/[\r\n]+/);
 
     obj.atbStartFlat = 0;
     obj.atbStartRate = 0;
     obj.atbTurnFlat = 0;
     obj.atbTurnRate = 0;
+    var evalMode = 'none';
+    obj.atbHelp = undefined;
 
-		for (var i = 0; i < notedata.length; i++) {
-			var line = notedata[i];
-			if (line.match(noteA1)) {
-				obj.atbStartFlat = parseInt(RegExp.$1);
-			} else if (line.match(noteA2)) {
-				obj.atbStartRate = parseFloat(RegExp.$1 * 0.01);
-			} else if (line.match(noteB1)) {
-				obj.atbTurnFlat = parseInt(RegExp.$1);
-			} else if (line.match(noteB2)) {
-				obj.atbTurnRate = parseFloat(RegExp.$1 * 0.01);
-			}
-		}
-	}
+    for (var i = 0; i < notedata.length; i++) {
+      var line = notedata[i];
+      if (line.match(noteA1)) {
+        obj.atbStartFlat = parseInt(RegExp.$1);
+      } else if (line.match(noteA2)) {
+        obj.atbStartRate = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(noteB1)) {
+        obj.atbTurnFlat = parseInt(RegExp.$1);
+      } else if (line.match(noteB2)) {
+        obj.atbTurnRate = parseFloat(RegExp.$1 * 0.01);
+      } else if (line.match(/<(?:ATB HELP)>/i)) {
+        evalMode = 'atb help';
+        obj.atbHelp = '';
+      } else if (line.match(/<\/(?:ATB HELP)>/i)) {
+        evalMode = 'none';
+      } else if (evalMode === 'atb help') {
+        obj.atbHelp = obj.atbHelp + line + '\n';
+      }
+    }
+  }
 };
 
 //=============================================================================
@@ -1096,7 +1112,12 @@ BattleManager.playATBReadySound = function() {
 
 BattleManager.startATBAction = function(battler) {
     this._subject = battler;
-    this.startAction();
+    var action = this._subject.currentAction();
+    if (action.isValid()) {
+      this.startAction();
+    } else {
+      this.endAction();
+    }
 };
 
 Yanfly.ATB.BattleManager_endAction = BattleManager.endAction;
@@ -1135,7 +1156,6 @@ BattleManager.processEscape = function() {
     } else {
       return Yanfly.ATB.BattleManager_processEscape.call(this);
     }
-
 };
 
 BattleManager.processEscapeATB = function() {
@@ -1149,7 +1169,7 @@ BattleManager.processEscapeATB = function() {
       this._escaped = true;
       this.processAbort();
   } else {
-  		this.actor().spriteStepBack();
+      this.actor().spriteStepBack();
       this.actor().clearActions();
       this.displayEscapeFailureMessage();
       this._escapeRatio += this._escapeFailBoost;
@@ -1194,7 +1214,7 @@ BattleManager.actionATBCharge = function(actionArgs) {
     var targets = this.makeActionTargets(actionArgs[0]);
     if (targets.length < 1) return true;
     var cmd = actionArgs[1];
-		if (cmd.match(/([\+\-]\d+)([%％])/i)) {
+    if (cmd.match(/([\+\-]\d+)([%％])/i)) {
       var rate = parseFloat(RegExp.$1 * 0.01);
       for (var i = 0; i < targets.length; ++i) {
         var target = targets[i];
@@ -1260,7 +1280,7 @@ BattleManager.actionATBSpeed = function(actionArgs) {
     var targets = this.makeActionTargets(actionArgs[0]);
     if (targets.length < 1) return true;
     var cmd = actionArgs[1];
-		if (cmd.match(/([\+\-]\d+)([%％])/i)) {
+    if (cmd.match(/([\+\-]\d+)([%％])/i)) {
       var rate = parseFloat(RegExp.$1 * 0.01);
       var max = this.atbTarget();
       for (var i = 0; i < targets.length; ++i) {
@@ -1434,6 +1454,13 @@ Game_Action.prototype.applyItemATBInterruptEval = function(target) {
     var charge = target.atbCharge();
     eval(item.atbInterruptEval);
     if (interrupt) target.processATBInterrupt();
+};
+
+Game_Action.prototype.rebalanceATBSpeed = function(target) {
+    var speed = this.subject().atbSpeed();
+    var offset = 00000000001;
+    speed = Math.max(speed + offset, target.atbSpeed() + target.atbCharge());
+    this.subject().setATBSpeed(speed);
 };
 
 //=============================================================================
@@ -1985,7 +2012,7 @@ Window_BattleStatus.prototype.redrawATBGaugeRect = function(index, actor) {
   } else {
     totalArea -= 30;
     var hpW = parseInt(totalArea * 108 / 300);
-		var otW = parseInt(totalArea * 96 / 300);
+    var otW = parseInt(totalArea * 96 / 300);
     clrect.x = rect.x + hpW + otW + 29;
     clrect.y = rect.y;
     clrect.width = otW + 2;
@@ -2014,8 +2041,8 @@ Yanfly.ATB.Window_BattleStatus_drawGaugeAreaWithTp =
 Window_BattleStatus.prototype.drawGaugeAreaWithTp = function(rect, actor) {
   if (this.isATBGaugeStyle(2)) {
     var totalArea = this.gaugeAreaWidth();
-		var gw = totalArea / 4 - 15;
-		this.drawActorHp(actor, rect.x + 0, rect.y, gw);
+    var gw = totalArea / 4 - 15;
+    this.drawActorHp(actor, rect.x + 0, rect.y, gw);
     this.drawActorMp(actor, rect.x + gw * 1 + 15, rect.y, gw);
     this.drawActorTp(actor, rect.x + gw * 2 + 30, rect.y, gw);
     this.drawActorAtbGauge(actor, rect.x + gw * 3 + 45, rect.y, gw);
@@ -2029,9 +2056,9 @@ Yanfly.ATB.Window_BattleStatus_drawGaugeAreaWOTp =
 Window_BattleStatus.prototype.drawGaugeAreaWithoutTp = function(rect, actor) {
   if (this.isATBGaugeStyle(2)) {
     var totalArea = this.gaugeAreaWidth() - 30;
-		var hpW = parseInt(totalArea * 108 / 300);
-		var otW = parseInt(totalArea * 96 / 300);
-		this.drawActorHp(actor, rect.x + 0, rect.y, hpW);
+    var hpW = parseInt(totalArea * 108 / 300);
+    var otW = parseInt(totalArea * 96 / 300);
+    this.drawActorHp(actor, rect.x + 0, rect.y, hpW);
     this.drawActorMp(actor, rect.x + hpW + 15, rect.y, otW);
     this.drawActorAtbGauge(actor, rect.x + hpW + otW + 30, rect.y, otW);
   } else {
@@ -2154,15 +2181,15 @@ Scene_Battle.prototype.commandFight = function() {
 };
 
 Yanfly.ATB.Scene_Battle_startActorCommandSelection =
-		Scene_Battle.prototype.startActorCommandSelection;
+    Scene_Battle.prototype.startActorCommandSelection;
 Scene_Battle.prototype.startActorCommandSelection = function() {
-		Yanfly.ATB.Scene_Battle_startActorCommandSelection.call(this);
-		if (BattleManager.isATB()) {
-			BattleManager.actor().spriteStepForward();
+    Yanfly.ATB.Scene_Battle_startActorCommandSelection.call(this);
+    if (BattleManager.isATB()) {
+      BattleManager.actor().spriteStepForward();
       BattleManager.actor().setActionState('undecided');
       BattleManager.actor().requestMotionRefresh();
       BattleManager.actor().makeActions();
-		}
+    }
 };
 
 //=============================================================================

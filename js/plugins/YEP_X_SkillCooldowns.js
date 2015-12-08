@@ -11,7 +11,7 @@ Yanfly.SCD = Yanfly.SCD || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.04 (Requires YEP_SkillCore.js) Cooldowns can be applied
+ * @plugindesc v1.05 (Requires YEP_SkillCore.js) Cooldowns can be applied
  * to skills to prevent them from being used continuously.
  * @author Yanfly Engine Plugins
  *
@@ -349,6 +349,9 @@ Yanfly.SCD = Yanfly.SCD || {};
  * Changelog
  * ============================================================================
  *
+ * Version 1.05:
+ * - Fixed a bug that prevented <Cooldown Eval> from running properly.
+ *
  * Version 1.04:
  * - Fixed a bug that didn't alter cooldowns correctly.
  *
@@ -455,6 +458,7 @@ DataManager.processSCDNotetags1 = function(group) {
 			} else if (line.match(/<(?:BYPASS COOLDOWN)>/i)) {
 				obj.bypassCooldown = true;
 			} else if (line.match(/<(?:COOLDOWN EVAL)>/i)) {
+        obj.cooldown[obj.id] = obj.cooldown[obj.id] || 0;
 				evalMode = 'cooldown';
 			} else if (line.match(/<\/(?:COOLDOWN EVAL)>/i)) {
 				evalMode = 'none';

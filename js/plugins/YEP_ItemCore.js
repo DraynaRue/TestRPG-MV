@@ -11,7 +11,7 @@ Yanfly.Item = Yanfly.Item || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.12 Changes the way Items are handled for your game
+ * @plugindesc v1.15 Changes the way Items are handled for your game
  * and the Item Scene, too.
  * @author Yanfly Engine Plugins
  *
@@ -292,6 +292,16 @@ Yanfly.Item = Yanfly.Item || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.15:
+ * - Fixed a bug with independent items getting values that crash the game.
+ *
+ * Version 1.14:
+ * - Fixed an unintended function of the game not granting a piece of equipment
+ * through events.
+ *
+ * Version 1.13:
+ * - Fixed a bug that didn't unequip items properly.
  *
  * Version 1.12:
  * - Added 'Negative Variance' parameter.
@@ -643,7 +653,7 @@ ItemManager.randomizeInitialEffects = function(baseItem, newItem) {
         if (effect.value1 !== 0) {
           var boost = Math.floor(Math.random() * randomValue - offset);
           effect.value1 += boost * 0.01;
-          effect.value1 = effect.value1.toFixed(2);
+          effect.value1 = parseFloat(effect.value1.toFixed(2));
           effect.value1 = effect.value1.clamp(0, 1);
         }
         if (effect.value2 !== 0) {
@@ -654,7 +664,7 @@ ItemManager.randomizeInitialEffects = function(baseItem, newItem) {
         if (effect.value1 !== 0) {
           var boost = Math.floor(Math.random() * randomValue - offset);
           effect.value1 += boost * 0.01;
-          effect.value1 = effect.value1.toFixed(2);
+          effect.value1 = parseFloat(effect.value1.toFixed(2));
           effect.value1 = effect.value1.clamp(0, 1);
         }
         if (effect.value2 !== 0) {
@@ -847,6 +857,9 @@ Game_Actor.prototype.changeEquipById = function(etypeId, itemId) {
       } else {
         var baseItem = $dataArmors[itemId];
       }
+      if (!$gameParty.hasItem(baseItem)) {
+        $gameParty.gainItem(baseItem, 1);
+      }
       if (DataManager.isIndependent(baseItem)) {
         if (this.hasBaseItem(baseItem)) return;
         var item = $gameParty.getMatchingBaseItem(baseItem, false);
@@ -865,7 +878,7 @@ Game_Actor.prototype.changeEquipById = function(etypeId, itemId) {
 
 Game_Actor.prototype.unequipItem = function(item) {
     for (var i = 0; i < this.equips().length; ++i) {
-      var equip = this.equips()[0];
+      var equip = this.equips()[i];
       if (!equip) continue;
       if (equip !== item) continue;
       this.changeEquip(i, null);
@@ -1089,7 +1102,6 @@ Game_Interpreter.prototype.pluginCommand = function(command, args) {
 
 Yanfly.Item.Game_Interpreter_gDO = Game_Interpreter.prototype.gameDataOperand;
 Game_Interpreter.prototype.gameDataOperand = function(type, param1, param2) {
-  console.log(type);
   switch (type) {
   case 0:
     return $gameParty.numIndependentItems($dataItems[param1]);

@@ -206,6 +206,10 @@ Yanfly.ARS = Yanfly.ARS || {};
  *   Causes the skill/item to reduce the target's armor level by x (but will
  *   not go past 0). This is calculated last.
  *
+ *   <Bypass Armor Scaling>
+ *   This notetag allows you to bypass the armor scaling process for this
+ *   individual skill/item.
+ *
  * Actor, Class, Enemy, Weapon, Armor, State Notetags:
  *   <Physical Armor Reduction: x>
  *   Causes this actor to lose x armor when targeted by physical skills/items.
@@ -418,7 +422,10 @@ DataManager.processARSNotetags1 = function(group) {
 				obj.armorPenetrationFlat = parseInt(RegExp.$1);
 			} else if (line.match(/<(?:ARMOR PENETRATION):[ ](\d+)([%％])>/i)) {
 				obj.armorPenetrationRate = parseFloat(RegExp.$1 * 0.01);
-			} else if (armorScaleMode === 1) {
+			} else if (line.match(/<(?:BYPASS ARMOR SCALING)>/i)) {
+        obj.positiveArmorScale = '';
+        obj.negativeArmorScale = '';
+      } else if (armorScaleMode === 1) {
         obj.positiveArmorScale = obj.positiveArmorScale + line + '\n';
       } else if (armorScaleMode === -1) {
 				obj.negativeArmorScale = obj.negativeArmorScale + line + '\n';
