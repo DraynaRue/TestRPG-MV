@@ -9,5 +9,6 @@ null,
 {"id":7,"atypeId":2,"description":"","etypeId":5,"traits":[{"code":22,"dataId":1,"value":0}],"iconIndex":144,"name":"ALfheim Bracelet","note":"","params":[5,5,5,5,5,5,5,5],"price":0},
 {"id":8,"atypeId":3,"description":"","etypeId":3,"traits":[{"code":22,"dataId":1,"value":0}],"iconIndex":132,"name":"Steel Helm","note":"","params":[0,0,0,10,0,0,-5,0],"price":200},
 {"id":9,"atypeId":3,"description":"","etypeId":4,"traits":[{"code":22,"dataId":1,"value":0}],"iconIndex":137,"name":"Steel Guard","note":"","params":[0,0,0,15,0,0,-10,0],"price":300},
-{"id":10,"atypeId":5,"description":"","etypeId":5,"traits":[{"code":22,"dataId":1,"value":0}],"iconIndex":144,"name":"Power Bracer","note":"","params":[0,0,5,2,0,0,0,0],"price":350}
+{"id":10,"atypeId":5,"description":"","etypeId":5,"traits":[{"code":22,"dataId":1,"value":0}],"iconIndex":144,"name":"Power Bracer","note":"","params":[0,0,5,2,0,0,0,0],"price":350},
+{"id":11,"atypeId":5,"description":"","etypeId":5,"traits":[{"code":22,"dataId":1,"value":0}],"iconIndex":144,"name":"Magic Bracelet","note":"","params":[0,0,0,2,5,0,0,0],"price":350}
 ]

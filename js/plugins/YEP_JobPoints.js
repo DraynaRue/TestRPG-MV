@@ -11,7 +11,7 @@ Yanfly.JP = Yanfly.JP || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.03 This plugin by itself doesn't do much, but it enables
+ * @plugindesc v1.04 This plugin by itself doesn't do much, but it enables
  * actors to acquire JP (job points) used for other plugins.
  * @author Yanfly Engine Plugins
  *
@@ -185,6 +185,9 @@ Yanfly.JP = Yanfly.JP || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.04:
+ * - Added failsafes to prevent JP from turning into NaN midbattle.
  *
  * Version 1.03:
  * - Added 'Show Results' parameter to show/hide JP earned after battle for
@@ -375,6 +378,12 @@ Game_Battler.prototype.onBattleStart = function() {
 		this._battleJp = 0;
 };
 
+Yanfly.JP.Game_Battler_onBattleEnd = Game_Battler.prototype.onBattleEnd;
+Game_Battler.prototype.onBattleEnd = function() {
+    Yanfly.JP.Game_Battler_onBattleEnd.call(this);
+    this._battleJp = 0;
+};
+
 //=============================================================================
 // Game_Actor
 //=============================================================================
@@ -438,6 +447,7 @@ Game_Actor.prototype.gainJp = function(value, classId) {
 		classId = classId || this.currentClass().id;
 		value = Math.floor(value * this.jpRate());
 		if ($gameParty.inBattle()) {
+      this._battleJp = this._battleJp || 0;
 			this._battleJp += value;
 		}
 		this.setJp(this.jp(classId) + value, classId);
@@ -449,6 +459,7 @@ Game_Actor.prototype.loseJp = function(value, classId) {
 };
 
 Game_Actor.prototype.battleJp = function() {
+    this._battleJp = this._battleJp || 0;
 		return this._battleJp;
 };
 

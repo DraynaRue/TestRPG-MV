@@ -11,7 +11,7 @@ Yanfly.Subclass = Yanfly.Subclass || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.03 (Requires YEP_ClassChangeCore.js) Allow your actors
+ * @plugindesc v1.04 (Requires YEP_ClassChangeCore.js) Allow your actors
  * to subclass into a secondary class!
  * @author Yanfly Engine Plugins
  *
@@ -242,6 +242,9 @@ Yanfly.Subclass = Yanfly.Subclass || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.04:
+ * - Fixed an issue that would turn the ATB gauge in battle a different color.
  *
  * Version 1.03:
  * - Fixed a bug that would duplicate non-independent items.
@@ -685,7 +688,7 @@ Game_Actor.prototype.changeSubclass = function(classId) {
 Yanfly.Subclass.Game_Actor_paramBase = Game_Actor.prototype.paramBase;
 Game_Actor.prototype.paramBase = function(paramId) {
     var value = Yanfly.Subclass.Game_Actor_paramBase.call(this, paramId);
-    value += this.subclassParamBase(paramId);
+    value += Math.floor(this.subclassParamBase(paramId));
     return value;
 };
 

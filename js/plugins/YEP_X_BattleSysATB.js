@@ -11,7 +11,7 @@ Yanfly.ATB = Yanfly.ATB || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.12 (Requires YEP_BattleEngineCore.js) Add ATB (Active
+ * @plugindesc v1.15 (Requires YEP_BattleEngineCore.js) Add ATB (Active
  * Turn Battle) into your game using this plugin!
  * @author Yanfly Engine Plugins
  *
@@ -67,11 +67,6 @@ Yanfly.ATB = Yanfly.ATB || {};
  * @desc This is how many ticks to equal a full battle turn.
  * This is a formula processed as an eval.
  * @default Math.min(200, BattleManager.lowestBaseAgi() * 8)
- *
- * @param Turn Structure
- * @desc Increase battler turn time-based or after action?
- * Time-Based - true     After Action - false
- * @default false
  *
  * @param Flash Enemy
  * @desc Flash enemies when they start charging their skills?
@@ -438,6 +433,19 @@ Yanfly.ATB = Yanfly.ATB || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ * 
+ * Verison 1.15:
+ * - Implemented a Forced Action queue list. This means if a Forced Action
+ * takes place in the middle of an action, the action will resume after the
+ * forced action finishes rather than cancels it out like MV does.
+ *
+ * Version 1.14:
+ * - Added a speed position check for Instant Casts to maintain order position.
+ *
+ * Version 1.13:
+ * - Fixed a bug that doesn't update state turns properly.
+ * - Removed 'Turn Structure parameter' as it goes against the nature of a
+ * Tick-Based battle system.
  *
  * Version 1.12:
  * - Added speed rebalance formulas for tick-based systems (innate).
@@ -510,7 +518,7 @@ Yanfly.Param.ATBSurprise = Number(Yanfly.Parameters['Surprise Bonuses']);
 Yanfly.Param.ATBEscapeRatio = String(Yanfly.Parameters['Escape Ratio']);
 Yanfly.Param.ATBEscapeBoost = String(Yanfly.Parameters['Fail Escape Boost']);
 Yanfly.Param.ATBFullTurn = String(Yanfly.Parameters['Full Turn']);
-Yanfly.Param.ATBTurnStructure = String(Yanfly.Parameters['Turn Structure']);
+Yanfly.Param.ATBTurnStructure = false;
 Yanfly.Param.ATBFlashEnemy = eval(String(Yanfly.Parameters['Flash Enemy']));
 Yanfly.Param.ATBRubberband = String(Yanfly.Parameters['Enable Rubberband']);
 Yanfly.Param.ATBMinSpeed = String(Yanfly.Parameters['Minimum Speed']);
@@ -742,7 +750,7 @@ BattleManager.isATB = function() {
 
 Yanfly.ATB.BattleManager_isTurnBased = BattleManager.isTurnBased;
 BattleManager.isTurnBased = function() {
-    if (this.isATB()) return eval(Yanfly.Param.ATBTurnStructure);
+    if (this.isATB()) return false;
     return Yanfly.ATB.BattleManager_isTurnBased.call(this);
 };
 
@@ -948,7 +956,7 @@ BattleManager.updateATBTicks = function() {
     if (this.isTurnBased()) {
       this.endTurn();
     } else {
-      this._phase = 'turnEnd';
+      this.endTurn();
     }
 };
 
@@ -1070,7 +1078,7 @@ BattleManager.selectPreviousCommand = function() {
 
 Yanfly.ATB.BattleManager_startTurn = BattleManager.startTurn;
 BattleManager.startTurn = function() {
-    if (this.isATB()) return;
+    if (this.isATB() && !this.isTurnBased()) return;
     Yanfly.ATB.BattleManager_startTurn.call(this);
 };
 
@@ -1113,7 +1121,7 @@ BattleManager.playATBReadySound = function() {
 BattleManager.startATBAction = function(battler) {
     this._subject = battler;
     var action = this._subject.currentAction();
-    if (action.isValid()) {
+    if (action && action.isValid()) {
       this.startAction();
     } else {
       this.endAction();
@@ -1137,6 +1145,7 @@ BattleManager.endATBAction = function() {
     if (this._subject) this._subject.onAllActionsEnd();
     if (this.updateEventMain()) return;
     this._subject.endTurnAllATB();
+    if (this.loadPreForceActionSettings()) return;
     var chargedBattler = this.getChargedATBBattler();
     if (chargedBattler) {
       this.startATBAction(chargedBattler);
@@ -1647,7 +1656,15 @@ Game_Battler.prototype.checkATBEndInstantCast = function() {
     var item = action.item();
     if (!item) return false;
     if (!this.isInstantCast(item)) return false;
-    this._atbSpeed = BattleManager.atbTarget();
+    var length = BattleManager.allBattleMembers().length;
+    for (var i = 0; i < length; ++i) {
+      var member = BattleManager.allBattleMembers()[i];
+      if (!member) continue;
+      var max = member.atbSpeed() + member.atbCharge();
+      this._atbSpeed = Math.max(this._atbSpeed, max);
+    }
+    this._atbSpeed = Math.max(this._atbSpeed, BattleManager.atbTarget());
+    this._atbSpeed += 0.00000000001;
     return true;
 };
 

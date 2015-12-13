@@ -11,7 +11,7 @@ Yanfly.Item = Yanfly.Item || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.15 Changes the way Items are handled for your game
+ * @plugindesc v1.16 Changes the way Items are handled for your game
  * and the Item Scene, too.
  * @author Yanfly Engine Plugins
  *
@@ -292,6 +292,10 @@ Yanfly.Item = Yanfly.Item || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.16:
+ * - Fixed a bug that made mid-game actor initialization not display items
+ * correctly in the item menu.
  *
  * Version 1.15:
  * - Fixed a bug with independent items getting values that crash the game.
@@ -756,6 +760,13 @@ Game_Temp.prototype.varianceStock = function() {
 // Game_Actor
 //=============================================================================
 
+Yanfly.Item.Game_Actor_setup = Game_Actor.prototype.setup;
+Game_Actor.prototype.setup = function(actorId) {
+    Yanfly.Item.Game_Actor_setup.call(this, actorId);
+    if ($gameTemp._initializeStartingMemberEquipment) return;
+    this.initIndependentEquips($dataActors[actorId].equips);
+};
+
 Game_Actor.prototype.initIndependentEquips = function(equips) {
     var equips = this.convertInitEquips(equips);
     this.equipInitIndependentEquips(equips);
@@ -899,6 +910,7 @@ Game_Party.prototype.setupStartingMembers = function() {
 };
 
 Game_Party.prototype.initActorEquips = function() {
+    $gameTemp._initializeStartingMemberEquipment = true;
     for (var i = 0; i < $dataActors.length; ++i) {
       var actor = $gameActors.actor(i);
       if (actor) {
@@ -906,6 +918,7 @@ Game_Party.prototype.initActorEquips = function() {
         actor.initIndependentEquips(baseActor.equips);
       }
     }
+    $gameTemp._initializeStartingMemberEquipment = undefined;
 };
 
 Yanfly.Item.Game_Party_gainItem = Game_Party.prototype.gainItem;

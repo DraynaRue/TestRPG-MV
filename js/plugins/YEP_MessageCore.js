@@ -11,7 +11,7 @@ Yanfly.Message = Yanfly.Message || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.06 Adds more features to the Message Window to customized
+ * @plugindesc v1.07 Adds more features to the Message Window to customized
  * the way your messages appear and functions.
  * @author Yanfly Engine Plugins
  *
@@ -46,6 +46,11 @@ Yanfly.Message = Yanfly.Message || {};
  * @param Description Wrap
  * @desc Use this to enable or disable word wrapping for descriptions.
  * OFF - false     ON - true
+ * @default false
+ *
+ * @param Word Wrap Space
+ * @desc Insert a space with manual line breaks?
+ * NO - false     YES - true
  * @default false
  *
  * @param ---Font---
@@ -276,6 +281,10 @@ Yanfly.Message = Yanfly.Message || {};
  * Changelog
  * ============================================================================
  *
+ * Version 1.07:
+ * - Added 'Word Wrap Space' for word wrap users. This parameter will leave a
+ * space behind for those who want a space left behind.
+ *
  * Version 1.06:
  * - Fixed a bug that would cause masking problems with mobile devices.
  *
@@ -318,6 +327,7 @@ Yanfly.Param.MSGFaceIndent = String(Yanfly.Parameters['Face Indent']);
 Yanfly.Param.MSGFastForward = String(Yanfly.Parameters['Fast Forward']);
 Yanfly.Param.MSGWordWrap = String(Yanfly.Parameters['Word Wrapping']);
 Yanfly.Param.MSGDescWrap = String(Yanfly.Parameters['Description Wrap']);
+Yanfly.Param.MSGWrapSpace = eval(String(Yanfly.Parameters['Word Wrap Space']));
 Yanfly.Param.MSGFontName = String(Yanfly.Parameters['Font Name']);
 Yanfly.Param.MSGFontSize = Number(Yanfly.Parameters['Font Size']);
 Yanfly.Param.MSGFontSizeChange = String(Yanfly.Parameters['Font Size Change']);
@@ -476,7 +486,8 @@ Window_Base.prototype.setWordWrap = function(text) {
 			text = text.replace(/<(?:WordWrap)>/gi, '\n');
 		}
 		if (this._wordWrap) {
-			text = text.replace(/[\n\r]+/g, '');
+      var replace = Yanfly.Param.MSGWrapSpace ? ' ' : '';
+			text = text.replace(/[\n\r]+/g, replace);
 			text = text.replace(/<(?:BR|line break)>/gi, '\n');
 		}
 		return text;

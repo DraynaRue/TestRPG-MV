@@ -11,7 +11,7 @@ Yanfly.Equip = Yanfly.Equip || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.06 Allows for the equipment system to be more flexible to
+ * @plugindesc v1.07 Allows for the equipment system to be more flexible to
  * allow for unique equipment slots per class.
  * @author Yanfly Engine Plugins
  *
@@ -152,6 +152,9 @@ Yanfly.Equip = Yanfly.Equip || {};
  * ============================================================================
  * Changelog
  * ============================================================================
+ *
+ * Version 1.07:
+ * - Fixed a bug with 'Optimize' and 'Remove All' not refreshing windows.
  *
  * Version 1.06:
  * - Fixed a bug with 'Change Equipment' event where it would only change the
@@ -893,6 +896,7 @@ Scene_Equip.prototype.commandClear = function() {
 
 Yanfly.Equip.Scene_Equip_onSlotOk = Scene_Equip.prototype.onSlotOk;
 Scene_Equip.prototype.onSlotOk = function() {
+    this._itemWindow._slotId = -1;
     var slotId = this._slotWindow.index();
     Yanfly.Equip.Window_EquipItem_setSlotId.call(this._itemWindow, slotId);
     Yanfly.Equip.Scene_Equip_onSlotOk.call(this);

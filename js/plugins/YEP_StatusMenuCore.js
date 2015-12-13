@@ -11,7 +11,7 @@ Yanfly.Status = Yanfly.Status || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.00 Changes the Status menu for your characters into a
+ * @plugindesc v1.01 Changes the Status menu for your characters into a
  * hub that displays more character information.
  * @author Yanfly Engine Plugins
  *
@@ -392,6 +392,16 @@ Yanfly.Status = Yanfly.Status || {};
  * The icons will be drawn for the said attributes in addition to any other
  * text code modifications used.
  *
+ * ============================================================================
+ * Changelog
+ * ============================================================================
+ *
+ * Version 1.01:
+ * - Converted Window_StatusInfo to Window_Selectable for those who would like
+ * to use it as such.
+ *
+ * Version 1.00:
+ * - Finished Plugin!
  */
 //=============================================================================
 
@@ -568,6 +578,12 @@ Window_StatusCommand.prototype.itemTextAlign = function() {
 };
 
 Window_StatusCommand.prototype.playOkSound = function() {
+    if (this.isPlayOkSound()) SoundManager.playOk();
+};
+
+Window_StatusCommand.prototype.isPlayOkSound = function() {
+    if (this.currentSymbol() === 'cancel') return true;
+    return false;
 };
 
 //=============================================================================
@@ -578,14 +594,14 @@ function Window_StatusInfo() {
     this.initialize.apply(this, arguments);
 }
 
-Window_StatusInfo.prototype = Object.create(Window_Base.prototype);
+Window_StatusInfo.prototype = Object.create(Window_Selectable.prototype);
 Window_StatusInfo.prototype.constructor = Window_StatusInfo;
 
 Window_StatusInfo.prototype.initialize = function(y, commandWindow) {
     var width = Graphics.boxWidth;
 		var height = Graphics.boxHeight - y;
 		this._commandWindow = commandWindow;
-		Window_Base.prototype.initialize.call(this, 0, y, width, height);
+		Window_Selectable.prototype.initialize.call(this, 0, y, width, height);
 		this.findParamLimits();
 };
 
@@ -626,6 +642,8 @@ Window_StatusInfo.prototype.resetTextColor = function() {
 
 Window_StatusInfo.prototype.refresh = function() {
     this.contents.clear();
+    this._scrollX = 0;
+    this._scrollY = 0;
 		this.drawInfoContents(this._symbol);
 };
 

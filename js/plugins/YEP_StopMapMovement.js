@@ -11,7 +11,7 @@ Yanfly.Stop = Yanfly.Stop || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.00 A utility plugin to stop events from automatically
+ * @plugindesc v1.01 A utility plugin to stop events from automatically
  * moving by themselves all across your map.
  * @author Yanfly Engine Plugins
  *
@@ -61,6 +61,16 @@ Yanfly.Stop = Yanfly.Stop || {};
  *
  *   AllowPlayerMovement
  *   Allows player to move again via input.
+ *
+ * ============================================================================
+ * Changelog
+ * ============================================================================
+ *
+ * Version 1.01:
+ * - Optimized updating performance to reduce lag on maps with many events.
+ *
+ * Version 1.00:
+ * - Finished Plugin!
  */
 //=============================================================================
 
@@ -124,9 +134,27 @@ Game_Event.prototype.updateSelfMovement = function() {
 };
 
 Game_Event.prototype.preventSelfMovement = function() {
-    if (Yanfly.Param.StopEvent && $gameMap.isEventRunning()) return true;
-    if (Yanfly.Param.StopMsg && $gameMessage.isBusy()) return true;
+    if (this._moveType === 0) return true;
     if ($gameTemp.isStopMapEventMovement()) return true;
+    if (Yanfly.Param.StopMsg && $gameMessage.isBusy()) return true;
+    if (Yanfly.Param.StopEvent && $gameMap.isEventRunQuick()) return true;
+    return false;
+};
+
+//=============================================================================
+// Game_Map
+//=============================================================================
+
+Game_Map.prototype.isEventRunQuick = function() {
+    return this._interpreter.isRunning() || this.isAnyEventStartingQuick();
+};
+
+Game_Map.prototype.isAnyEventStartingQuick = function() {
+    var max = this._events.length;
+    for (var i = 0; i < max; ++i) {
+      var ev = this._events[i];
+      if (ev && ev.isStarting()) return true;
+    }
     return false;
 };
 

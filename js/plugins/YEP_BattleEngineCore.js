@@ -11,7 +11,7 @@ Yanfly.BEC = Yanfly.BEC || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.22 Have more control over the flow of the battle system
+ * @plugindesc v1.25a Have more control over the flow of the battle system
  * with this plugin and alter various aspects to your liking.
  * @author Yanfly Engine Plugins
  *
@@ -607,6 +607,18 @@ Yanfly.BEC = Yanfly.BEC || {};
  * Changelog
  * ============================================================================
  *
+ * Version 1.25a:
+ * - Added failsafes for Forced Action queues.
+ * - Fixed a bug that caused End Turn events to not function properly.
+ *
+ * Version 1.24:
+ * - Implemented a Forced Action queue list. This means if a Forced Action
+ * takes place in the middle of an action, the action will resume after the
+ * forced action finishes rather than cancels it out like MV does.
+ * 
+ * Version 1.23:
+ * - Fixed a bug that didn't regenerate HP/MP/TP properly for tick-based.
+ *
  * Version 1.22:
  * - Fixed a bug within MV that caused Forced Actions at Turn End to prompt and
  * trigger all turn-end related activities (such as regeneration and state turn
@@ -1166,6 +1178,7 @@ BattleManager.initMembers = function() {
     this._forceSelection = false;
     this._allSelection = false;
     this._victoryPhase = false;
+    this._forceActionQueue = [];
 };
 
 BattleManager.isBattleSystem = function(value) {
@@ -1365,7 +1378,7 @@ BattleManager.startTurn = function() {
 
 Yanfly.BEC.BattleManager_endTurn = BattleManager.endTurn;
 BattleManager.endTurn = function() {
-    if (this._spriteset.isPopupPlaying()) return;
+    if (this.isTurnBased() && this._spriteset.isPopupPlaying()) return;
     if (this.isTurnBased() && this._enteredEndPhase) {
       this._phase = 'turnEnd';
       this._preemptive = false;
@@ -1443,6 +1456,60 @@ BattleManager.updateEvent = function() {
       }
     }
     return this.checkAbort();
+};
+
+Yanfly.BEC.BattleManager_forceAction = BattleManager.forceAction;
+BattleManager.forceAction = function(battler) {
+    this.createForceActionFailSafes();
+    this.savePreForceActionSettings();
+    Yanfly.BEC.BattleManager_forceAction.call(this, battler);
+};
+
+BattleManager.createForceActionFailSafes = function() {
+    this._actionList = this._actionList || [];
+    this._targets = this._targets || [];
+    this._allTargets = this._allTargets || [];
+    this._individualTargets = this._individualTargets || [];
+    this._phaseSteps = this._phaseSteps || [];
+    this._conditionFlags = this._conditionFlags || [];
+    this._trueFlags = this._trueFlags || [];
+};
+
+BattleManager.savePreForceActionSettings = function() {
+    var settings = {
+      subject: this._subject,
+      action: JsonEx.makeDeepCopy(this._action),
+      actionList: JsonEx.makeDeepCopy(this._actionList),
+      targets: this._targets.slice(),
+      allTargets: this._allTargets.slice(),
+      indTargets: this._individualTargets.slice(),
+      phaseSteps: JsonEx.makeDeepCopy(this._phaseSteps),
+      returnPhase: this._returnPhase,
+      phase: this._phase,
+      conditionFlags: JsonEx.makeDeepCopy(this._conditionFlags),
+      trueFlags: JsonEx.makeDeepCopy(this._trueFlags)
+    }
+    this._forceActionQueue.push(settings);
+};
+
+BattleManager.loadPreForceActionSettings = function() {
+    var settings = this._forceActionQueue.shift();
+    if (settings) {
+      this._subject = settings['subject'];
+      this._action = settings['action'];
+      this._actionList = settings['actionList'];
+      this._targets = settings['targets'];
+      this._allTargets = settings['allTargets'];
+      this._individualTargets = settings['indTargets'];
+      this._phaseSteps = settings['phaseSteps'];
+      this._returnPhase = settings['returnPhase'];
+      this._conditionFlags = settings['conditionFlags'];
+      this._trueFlags = settings['trueFlags'];
+      this._phase = settings['phase'];
+      return true;
+    } else {
+      return false;
+    }    
 };
 
 Yanfly.BEC.BattleManager_processForcedAction =
@@ -1575,6 +1642,7 @@ BattleManager.endAction = function() {
     }
     this._processingForcedAction = false;
     if (this._subject) this._subject.onAllActionsEnd();
+    if (this.loadPreForceActionSettings()) return;
     Yanfly.BEC.BattleManager_endAction.call(this);
 };
 
@@ -1585,6 +1653,31 @@ BattleManager.updateActionList = function() {
         if (!this.actionConditionsMet(this._actSeq)) continue;
         var seqName = this._actSeq[0].toUpperCase();
         if (!this.processActionSequence(seqName, this._actSeq[1])) {
+          break;
+        }
+      } else {
+        this._phase = 'phaseChange';
+        break;
+      }
+    }
+};
+
+BattleManager.updateActionTargetList = function() {
+    for (;;) {
+      this._actSeq = this._actionList.shift();
+      if (this._actSeq) {
+        if (!this.actionConditionsMet(this._actSeq)) continue;
+        var seqName = this._actSeq[0].toUpperCase();
+        if (!this.processActionSequence(seqName, this._actSeq[1])) {
+          break;
+        }
+      } else if (this._individualTargets.length > 0) {
+        this._individualTargets.shift();
+        if (this._individualTargets.length > 0) {
+          this.setTargets([this._individualTargets[0]]);
+          this._actionList = this._action.item().targetActions.slice();
+        } else {
+          this._phase = 'phaseChange';
           break;
         }
       } else {
@@ -2865,6 +2958,11 @@ Game_Battler.prototype.removeImmortal = function() {
     if (this.isDead() && !alreadyDead) this.performCollapse();
 };
 
+Yanfly.BEC.Game_Battler_removeState = Game_Battler.prototype.removeState;
+Game_Battler.prototype.removeState = function(stateId) {
+    Yanfly.BEC.Game_Battler_removeState.call(this, stateId);
+};
+
 Game_Battler.prototype.clearDamagePopup = function() {
     this._damagePopup = [];
 };
@@ -3244,7 +3342,11 @@ Game_Battler.prototype.onTurnStart = function() {
 
 Game_Battler.prototype.onTurnEnd = function() {
     this.clearResult();
-    this.regenerateAll();
+    if (BattleManager.isTurnBased()) {
+      this.regenerateAll();
+    } else if (BattleManager.isTickBased() && !BattleManager.isTurnEnd()) {
+      this.regenerateAll();
+    }
     if (!BattleManager.timeBasedStates()) this.updateStateTurns();
     if (!BattleManager.timeBasedBuffs()) this.updateBuffTurns();
     this.removeStatesAuto(2);
@@ -4007,6 +4109,7 @@ Window_EnemyVisualSelect.prototype.updateWindowAspects = function() {
     this.updateWindowPosition();
     this.updateOpacity();
     this.updateRefresh();
+    this.updateCursor();
 };
 
 Window_EnemyVisualSelect.prototype.updateBattlerName = function() {
@@ -4054,6 +4157,24 @@ Window_EnemyVisualSelect.prototype.isShowWindow = function() {
       return enemyWindow._selectDead;
     }
     return true;
+};
+
+Window_EnemyVisualSelect.prototype.updateCursor = function() {
+    if (this.isShowCursor()) {
+      var wy = this.contents.height - this.lineHeight();
+      this.setCursorRect(0, wy, this.contents.width, this.lineHeight());
+    } else {
+      this.setCursorRect(0, 0, 0, 0);
+    }
+};
+
+Window_EnemyVisualSelect.prototype.isShowCursor = function() {
+    var scene = SceneManager._scene;
+    if (!scene._enemyWindow) return false;
+    var enemyWindow = scene._enemyWindow;
+    if (!enemyWindow.active) return false;
+    if (!this._battler.isAppeared()) return false;
+    return this._battler.isSelected();
 };
 
 Window_EnemyVisualSelect.prototype.updateRefresh = function() {

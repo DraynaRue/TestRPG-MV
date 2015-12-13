@@ -11,7 +11,7 @@ Yanfly.CTB = Yanfly.CTB || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.02 (Requires YEP_BattleEngineCore.js) Add CTB (Charge
+ * @plugindesc v1.05 (Requires YEP_BattleEngineCore.js) Add CTB (Charge
  * Turn Battle) into your game using this plugin!
  * @author Yanfly Engine Plugins
  *
@@ -62,11 +62,6 @@ Yanfly.CTB = Yanfly.CTB || {};
  * @desc This is how many ticks to equal a full battle turn.
  * This is a formula processed as an eval.
  * @default Math.min(200, BattleManager.lowestBaseAgi() * 8)
- *
- * @param Turn Structure
- * @desc Increase battler turn time-based or after action?
- * Time-Based - true     After Action - false
- * @default false
  *
  * @param ---Rubberband---
  * @default
@@ -393,6 +388,19 @@ Yanfly.CTB = Yanfly.CTB || {};
  * Changelog
  * ============================================================================
  *
+ * Version 1.05:
+ * - Implemented a Forced Action queue list. This means if a Forced Action
+ * takes place in the middle of an action, the action will resume after the
+ * forced action finishes rather than cancels it out like MV does.
+ *
+ * Version 1.04:
+ * - Added a speed position check for Instant Casts to maintain order position.
+ *
+ * Version 1.03:
+ * - Fixed a bug that doesn't update state turns properly.
+ * - Removed 'Turn Structure parameter' as it goes against the nature of a
+ * Tick-Based battle system.
+ *
  * Version 1.02:
  * - Added failsafe for battlers without actions.
  * - Added speed rebalance formulas for tick-based systems (innate).
@@ -426,7 +434,7 @@ Yanfly.Param.CTBEscapeRatio = String(Yanfly.Parameters['Escape Ratio']);
 Yanfly.Param.CTBEscapeBoost = String(Yanfly.Parameters['Fail Escape Boost']);
 
 Yanfly.Param.CTBFullTurn = String(Yanfly.Parameters['Full Turn']);
-Yanfly.Param.CTBTurnStructure = String(Yanfly.Parameters['Turn Structure']);
+Yanfly.Param.CTBTurnStructure = false;
 
 Yanfly.Param.CTBRubberband = String(Yanfly.Parameters['Enable Rubberband']);
 Yanfly.Param.CTBMinSpeed = String(Yanfly.Parameters['Minimum Speed']);
@@ -640,7 +648,7 @@ BattleManager.isCTB = function() {
 
 Yanfly.CTB.BattleManager_isTurnBased = BattleManager.isTurnBased;
 BattleManager.isTurnBased = function() {
-    if (this.isCTB()) return eval(Yanfly.Param.CTBTurnStructure);
+    if (this.isCTB()) return false;
     return Yanfly.CTB.BattleManager_isTurnBased.call(this);
 };
 
@@ -849,17 +857,11 @@ BattleManager.breakCTBPhase = function() {
 
 BattleManager.updateCTBTicks = function() {
     this._ctbTicks += 1 * this.tickRate();
-    if (this._ctbTicks < this._ctbFullTurn) return;
-    $gameTroop.increaseTurn();
+    if (this._ctbTicks < this._ctbFullTurn) return false;
     this._ctbTicks = 0;
-    if (this.isTurnBased()) {
-      this.endTurn();
-      return true;
-    } else {
-      this._phase = 'turnEnd';
-      return true;
-    }
-    return false;
+    $gameTroop.increaseTurn();
+    this.endTurn();
+    return true;
 };
 
 BattleManager.getChargedCTBBattler = function() {
@@ -997,7 +999,7 @@ BattleManager.selectPreviousCommand = function() {
 
 Yanfly.CTB.BattleManager_startTurn = BattleManager.startTurn;
 BattleManager.startTurn = function() {
-    if (this.isCTB()) return;
+    if (this.isCTB() && !this.isTurnBased()) return;
     Yanfly.CTB.BattleManager_startTurn.call(this);
 };
 
@@ -1043,7 +1045,7 @@ BattleManager.playCTBReadySound = function() {
 BattleManager.startCTBAction = function(battler) {
     this._subject = battler;
     var action = this._subject.currentAction();
-    if (action.isValid()) {
+    if (action && action.isValid()) {
       this.startAction();
     } else {
       this.endAction();
@@ -1067,6 +1069,7 @@ BattleManager.endCTBAction = function() {
     if (this._subject) this._subject.onAllActionsEnd();
     if (this.updateEventMain()) return;
     this._subject.endTurnAllCTB();
+    if (this.loadPreForceActionSettings()) return;
     var chargedBattler = this.getChargedCTBBattler();
     if (chargedBattler) {
       this.startCTBAction(chargedBattler);
@@ -1393,15 +1396,15 @@ Game_BattlerBase.prototype.die = function() {
 //=============================================================================
 
 Game_Battler.prototype.ctbIcon = function() {
-        return 0;
+    return 0;
 };
 
 Game_Battler.prototype.ctbBorderColor = function() {
-        return 0;
+    return 0;
 };
 
 Game_Battler.prototype.ctbBackgroundColor = function() {
-        return 0;
+    return 0;
 };
 
 Game_Battler.prototype.onCTBStart = function() {
@@ -1625,7 +1628,15 @@ Game_Battler.prototype.checkCTBEndInstantCast = function() {
     var item = action.item();
     if (!item) return false;
     if (!this.isInstantCast(item)) return false;
-    this._ctbSpeed = BattleManager.ctbTarget();
+    var length = BattleManager.allBattleMembers().length;
+    for (var i = 0; i < length; ++i) {
+      var member = BattleManager.allBattleMembers()[i];
+      if (!member) continue;
+      var max = member.ctbSpeed() + member.ctbCharge();
+      this._ctbSpeed = Math.max(this._ctbSpeed, max);
+    }
+    this._ctbSpeed = Math.max(this._ctbSpeed, BattleManager.ctbTarget());
+    this._ctbSpeed += 0.00000000001;
     return true;
 };
 
@@ -1825,6 +1836,37 @@ Game_Actor.prototype.ctbTurnRate = function() {
     return value;
 };
 
+Yanfly.CTB.Game_Actor_changeClass = Game_Actor.prototype.changeClass;
+Game_Actor.prototype.changeClass = function(classId, keepExp) {
+    Yanfly.CTB.Game_Actor_changeClass.call(this, classId, keepExp);
+    this.ctbTransform();
+};
+
+Yanfly.CTB.Game_Actor_setCharacterImage =
+    Game_Actor.prototype.setCharacterImage;
+Game_Actor.prototype.setCharacterImage = function(name, index) {
+    Yanfly.CTB.Game_Actor_setCharacterImage.call(this, name, index)
+    this.ctbTransform();
+};
+
+Yanfly.CTB.Game_Actor_setFaceImage = Game_Actor.prototype.setFaceImage;
+Game_Actor.prototype.setFaceImage = function(faceName, faceIndex) {
+    Yanfly.CTB.Game_Actor_setFaceImage.call(this, faceName, faceIndex);
+    this.ctbTransform();
+};
+
+Yanfly.CTB.Game_Actor_setBattlerImage = Game_Actor.prototype.setBattlerImage;
+Game_Actor.prototype.setBattlerImage = function(battlerName) {
+    Yanfly.CTB.Game_Actor_setBattlerImage.call(this, battlerName);
+    this.ctbTransform();
+};
+
+Game_Actor.prototype.ctbTransform = function() {
+    if (!$gameParty.inBattle()) return;
+    if (!BattleManager.isCTB()) return;
+    this._ctbTransformed = true;
+};
+
 //=============================================================================
 // Game_Enemy
 //=============================================================================
@@ -1863,6 +1905,12 @@ Game_Enemy.prototype.ctbTurnRate = function() {
     var value = Game_Battler.prototype.ctbTurnRate.call(this);
     value += this.enemy().ctbTurnRate;
     return value;
+};
+
+Yanfly.CTB.Game_Enemy_transform = Game_Enemy.prototype.transform;
+Game_Enemy.prototype.transform = function(enemyId) {
+    Yanfly.CTB.Game_Enemy_transform.call(this, enemyId);
+    this._ctbTransformed = true;
 };
 
 //=============================================================================
@@ -2008,8 +2056,10 @@ Window_CTBIcon.prototype.update = function() {
 
 Window_CTBIcon.prototype.updateBattler = function() {
     var changed = this._battler !== this._mainSprite._battler;
+    if (this._battler && this._battler._ctbTransformed) changed = true;
     if (!changed) return;
     this._battler = this._mainSprite._battler;
+    this._battler._ctbTransformed = undefined;
     if (!this._battler) return this.removeCTBIcon();
     this._iconIndex = this._battler.ctbIcon();
     if (this._iconIndex > 0) {
