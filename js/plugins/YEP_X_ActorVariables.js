@@ -1,5 +1,5 @@
 //=============================================================================
-// Yanfly Engine Plugins - Template
+// Yanfly Engine Plugins - Status Menu Extension - Actor Variables
 // YEP_X_ActorVariables.js
 //=============================================================================
 

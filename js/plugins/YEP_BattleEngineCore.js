@@ -11,7 +11,7 @@ Yanfly.BEC = Yanfly.BEC || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.25a Have more control over the flow of the battle system
+ * @plugindesc v1.25b Have more control over the flow of the battle system
  * with this plugin and alter various aspects to your liking.
  * @author Yanfly Engine Plugins
  *
@@ -285,6 +285,11 @@ Yanfly.BEC = Yanfly.BEC || {};
  * @desc Show enemy names with Visual Enemy Select.
  * OFF - false     ON - true
  * @default true
+ *
+ * @param Show Select Box
+ * @desc Show a selection box when selecting enemies.
+ * OFF - false     ON - true
+ * @default false
  *
  * @param Enemy Font Size
  * @desc Changes the font size used to display enemy names.
@@ -607,8 +612,9 @@ Yanfly.BEC = Yanfly.BEC || {};
  * Changelog
  * ============================================================================
  *
- * Version 1.25a:
+ * Version 1.25b:
  * - Added failsafes for Forced Action queues.
+ * - Added 'Show Select Box' parameter when selecting enemies.
  * - Fixed a bug that caused End Turn events to not function properly.
  *
  * Version 1.24:
@@ -813,6 +819,7 @@ Yanfly.Param.BECActorSelect = String(Yanfly.Parameters['Visual Actor Select']);
 Yanfly.Param.BECWindowRows = String(Yanfly.Parameters['Window Rows']);
 Yanfly.Param.BECEnemyFontSize = Number(Yanfly.Parameters['Enemy Font Size']);
 Yanfly.Param.BECShowEnemyName = String(Yanfly.Parameters['Show Enemy Name']);
+Yanfly.Param.BECShowSelectBox = String(Yanfly.Parameters['Show Select Box']);
 Yanfly.Param.BECEnemyAutoSel = String(Yanfly.Parameters['Enemy Auto Select']);
 Yanfly.Param.BECCommandAlign = String(Yanfly.Parameters['Command Alignment']);
 Yanfly.Param.BECCommandRows = String(Yanfly.Parameters['Command Window Rows']);
@@ -4086,6 +4093,7 @@ Window_EnemyVisualSelect.prototype.initialize = function() {
     this._battler = null;
     this._battlerName = '';
     this._requestRefresh = false;
+    this._showSelectCursor = eval(Yanfly.Param.BECShowSelectBox);
     this._showEnemyName = eval(Yanfly.Param.BECShowEnemyName);
     this.contentsOpacity = 0;
     this.opacity = 0;
@@ -4122,6 +4130,7 @@ Window_EnemyVisualSelect.prototype.updateWindowSize = function() {
     var spriteWidth = this._battler.spriteWidth();
     this.contents.fontSize = Yanfly.Param.BECEnemyFontSize;
     var textWidth = this.textWidth(this._battler.name());
+    textWidth += this.textPadding() * 2;
     var width = Math.max(spriteWidth, textWidth) + this.standardPadding() * 2;
     var height = this._battler.spriteHeight() + this.standardPadding() * 2;
     if (width === this.width && height === this.height) return;
@@ -4169,6 +4178,7 @@ Window_EnemyVisualSelect.prototype.updateCursor = function() {
 };
 
 Window_EnemyVisualSelect.prototype.isShowCursor = function() {
+    if (!this._showSelectCursor) return false;
     var scene = SceneManager._scene;
     if (!scene._enemyWindow) return false;
     var enemyWindow = scene._enemyWindow;

@@ -11,7 +11,7 @@ Yanfly.BSW = Yanfly.BSW || {};
 
 //=============================================================================
  /*:
- * @plugindesc v1.01 A simple battle status window that shows the
+ * @plugindesc v1.01a A simple battle status window that shows the
  * faces of your party members in horizontal format.
  * @author Yanfly Engine Plugins
  *
@@ -46,12 +46,12 @@ Yanfly.BSW = Yanfly.BSW || {};
  * @default
  *
  * @param Left / Right
- * Use 'left' and 'right' for switching actors?
+ * @desc Use 'left' and 'right' for switching actors?
  * NO - false     YES - true
  * @default true
  *
  * @param PageUp / PageDown
- * Use 'page up' and 'page down' for switching actors?
+ * @desc Use 'page up' and 'page down' for switching actors?
  * NO - false     YES - true
  * @default true
  *
@@ -97,9 +97,10 @@ Yanfly.BSW = Yanfly.BSW || {};
  * Changelog
  * ============================================================================
  *
- * Version 1.01:
+ * Version 1.01a:
  * - Added refresh modifiers to update an actor's face whenever an event to
  * change the actor's face graphic.
+ * - Made an override for ATB style to automatically default on style 1.
  *
  * Version 1.00:
  * - Finished Plugin!
@@ -128,6 +129,7 @@ Yanfly.Param.BSWShowSprite = eval(String(Yanfly.Parameters['Show Sprites']));
 Yanfly.Param.BSWAlignAni = eval(String(Yanfly.Parameters['Align Animations']));
 Yanfly.Param.BSWXOffset = Number(Yanfly.Parameters['X Offset']);
 Yanfly.Param.BSWYOffset = Number(Yanfly.Parameters['Y Offset']);
+Yanfly.Param.ATBGaugeStyle = 1;
 
 //=============================================================================
 // BattleManager
