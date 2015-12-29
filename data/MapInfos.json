@@ -7,7 +7,7 @@ null,
 {"id":5,"expanded":false,"name":"Floor1LabBoss","order":6,"parentId":4,"scrollX":1216.5,"scrollY":723},
 {"id":6,"expanded":true,"name":"TownOfBeginningsActive","order":8,"parentId":1,"scrollX":1228.5,"scrollY":717},
 {"id":7,"expanded":false,"name":"BlackIronCastle","order":9,"parentId":6,"scrollX":1216.5,"scrollY":712.5},
-{"id":8,"expanded":true,"name":"Intro","order":1,"parentId":0,"scrollX":1228.5,"scrollY":717},
+{"id":8,"expanded":true,"name":"Intro","order":1,"parentId":0,"scrollX":1092,"scrollY":633.3333333333334},
 {"id":9,"expanded":true,"name":"Floor1Intro","order":2,"parentId":8,"scrollX":1216.5,"scrollY":1042.5},
 {"id":10,"expanded":false,"name":"TownBeginningsInn","order":10,"parentId":6,"scrollX":1228.5,"scrollY":717},
 {"id":11,"expanded":true,"name":"Floor2","order":11,"parentId":0,"scrollX":1216.5,"scrollY":783},
@@ -16,5 +16,5 @@ null,
 {"id":14,"expanded":true,"name":"ScorchCityInactive","order":16,"parentId":11,"scrollX":816,"scrollY":1828},
 {"id":15,"expanded":true,"name":"MagmaCaveEastBF2","order":14,"parentId":12,"scrollX":1228.5,"scrollY":717},
 {"id":16,"expanded":false,"name":"MagmaCaveEastPit","order":15,"parentId":15,"scrollX":1228.5,"scrollY":717},
-{"id":17,"expanded":true,"name":"ScorchCityActive","order":17,"parentId":11,"scrollX":1216.5,"scrollY":1827}
+{"id":17,"expanded":true,"name":"ScorchCityActive","order":17,"parentId":11,"scrollX":1081.3333333333333,"scrollY":1826.6666666666667}
 ]
